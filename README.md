@@ -2,9 +2,9 @@
 
 面向 MAD / AMV 的动态歌词排版面板。生成透明合成、可编辑文字图层与字旁形状，支持遮罩进退场、关键词大小对比、高亮、歌曲风格及自建随机集合。
 
-## 安装 1.5.2
+## 安装 1.5.3
 
-1. 从 [Releases](https://github.com/guhechudaisuki/LyricMotion-AE---/releases) 下载 `LyricMotion-AE-1.5.2-setup.exe`。
+1. 从 [Releases](https://github.com/guhechudaisuki/LyricMotion-AE---/releases) 下载 `LyricMotion-AE-1.5.3-setup.exe`。
 2. 关闭映词面板并运行安装器，选择插件和 resources 的存放目录。安装器自动建立 AE 扩展入口，检查并复用本地资源，只下载缺失或损坏的文件；更换目录时也会复用原安装的资源。
 3. 自行打开或重启 After Effects，在 **窗口 → 扩展 → 映词 LyricMotion** 打开面板。
 

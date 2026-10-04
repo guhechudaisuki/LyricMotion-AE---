@@ -19,6 +19,8 @@ AEP 的结构化素材路径改成可迁移标记，面板导入前将路径解�
 
 ## 开发依赖
 
+MP4 文件封装使用 mp4-muxer（Vanilagy，MIT），源码来源 https://github.com/Vanilagy/mp4-muxer 。随插件保留完整许可证 `assets/vendor/LICENSE.mp4-muxer.txt`。
+
 开发依赖固定在 `package-lock.json`，不随插件安装。包括 ESLint、Acorn、Prettier、Playwright 及其依赖，各自许可证保存在 npm 包中。构建使用 NSIS，在线资源解压使用 Windows 自带的 curl、PowerShell / .NET GZipStream。
 
 ## 演示歌词

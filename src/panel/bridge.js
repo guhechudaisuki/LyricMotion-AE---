@@ -8,7 +8,8 @@ window.LMBridge = (() => {
     os = req ? req('os') : null;
   let ready = false,
     connecting = null;
-  const version = '1.5.2';
+  const version = '1.5.3';
+  const revision = 'panel-video-2';
   const extensionRoot =
     cep && path
       ? decodeURI(cep.getSystemPath('extension'))
@@ -97,7 +98,7 @@ window.LMBridge = (() => {
         asciiJSON(encodeURIComponent(asciiJSON(args))) +
         ')',
       op,
-      /^(preRender|savePath|folder)$/.test(op) ? 0 : 45000
+      /^(preRender|importVideo|savePath|folder)$/.test(op) ? 0 : 45000
     );
     let result;
     try {
@@ -107,8 +108,11 @@ window.LMBridge = (() => {
     }
     if (!result.ok) {
       log(op, String(result.error || 'AE 操作失败').slice(0, 500), 0);
+      if (result.diagnostics) log(op + ':diagnostics', result.diagnostics, 0);
       throw new Error(result.error || 'AE 操作失败');
     }
+    if (op === 'preRender' || op === 'importVideo')
+      log(op + ':completed', { name: result.name, appEncoding: result.appEncoding }, 0);
     return result;
   }
   async function connect() {
@@ -118,7 +122,7 @@ window.LMBridge = (() => {
       ready = false;
       let info = null;
       if ((await evalScript('typeof LMHost', 'connect')) === 'object') info = await rawCall('info');
-      if (!info || info.version !== version) {
+      if (!info || info.version !== version || info.revision !== revision) {
         if (info && info.building)
           throw new Error('旧版本仍在生成，请先停止或重新打开 AE 后使用新版面板');
         if (info && info.version === '1.0.0' && typeof info.building === 'undefined')
@@ -135,7 +139,18 @@ window.LMBridge = (() => {
         if (loaded !== 'loaded') throw new Error('AE 脚本加载失败：' + loaded);
         info = await rawCall('info');
       }
-      if (info.version !== version) throw new Error('面板与 AE 脚本版本不一致，请关闭面板再打开');
+      if (info.version !== version || info.revision !== revision)
+        throw new Error('面板与 AE 脚本版本不一致，请关闭面板再打开');
+      log(
+        'host',
+        {
+          version: info.version,
+          revision: info.revision,
+          ae: info.ae,
+          appEncoding: info.appEncoding
+        },
+        0
+      );
       ready = true;
       return info;
     })();
@@ -230,6 +245,14 @@ window.LMBridge = (() => {
     path,
     fileURL,
     resolveResource,
+    createMovie(file, spec) {
+      if (!req || !extensionRoot) throw new Error('请在 AE 的映词面板中预渲染');
+      return req(path.join(extensionRoot, 'node', 'mov-writer.cjs')).createMovie(file, spec);
+    },
+    createVideoFile(file) {
+      if (!req || !extensionRoot) throw new Error('请在 AE 的映词面板中预渲染');
+      return req(path.join(extensionRoot, 'node', 'video-file.cjs')).createFile(file);
+    },
     isAE: !!cep,
     get ready() {
       return ready;

@@ -21,7 +21,10 @@ copy('assets', 'assets');
 const htmlFile = path.join(distribution, 'index.html');
 fs.writeFileSync(
   htmlFile,
-  fs.readFileSync(htmlFile, 'utf8').replace('content="../resources/"', 'content="resources/"')
+  fs
+    .readFileSync(htmlFile, 'utf8')
+    .replace('content="../resources/"', 'content="resources/"')
+    .replace('src="../assets/vendor/', 'src="assets/vendor/')
 );
 const hostSource = hostModules
   .map((file) => fs.readFileSync(path.join(root, file), 'utf8'))

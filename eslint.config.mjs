@@ -16,6 +16,9 @@ const panelGlobals = Object.fromEntries(
   [
     'LMBridge',
     'LMRender',
+    'LMVideo',
+    'LMMP4',
+    'Mp4Muxer',
     'LMLocal',
     'LMStylesUI',
     'LMTranslation',
@@ -27,6 +30,7 @@ const panelGlobals = Object.fromEntries(
 const aeGlobals = Object.fromEntries(
   [
     'app',
+    'system',
     'File',
     'Folder',
     'CompItem',
@@ -53,7 +57,8 @@ export default [
       'artifacts/**',
       '.local/**',
       'reference/**',
-      'coverage/**'
+      'coverage/**',
+      'assets/vendor/**'
     ]
   },
   {

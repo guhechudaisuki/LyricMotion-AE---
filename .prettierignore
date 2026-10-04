@@ -11,3 +11,4 @@ src/CSXS/*.xml
 
 resources/
 src/data/curated-motion.js
+assets/vendor/

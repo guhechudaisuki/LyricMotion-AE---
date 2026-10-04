@@ -11,6 +11,166 @@ const request = (options, position = 0) => {
     template: typeof template === 'string' ? template : template.id
   };
 };
+test('Chinese RGBA template survives the native application encoding boundary', async () => {
+  const f = fixture({ lossyEval: true, lossyResponse: true, lossyNative: true }),
+    options = await f.api.call('renderOptions');
+  const selected = options.templates.findIndex((template) => template.id === options.preferred);
+  const result = await f.api.call('preRender', request(options, selected));
+  assert.equal(result.ok, true);
+  assert.deepEqual(f.nativeCalls, [
+    { name: '具有 Alpha 的高品质', received: '具有 Alpha 的高品质', encoding: 'CP936' }
+  ]);
+  assert.equal(f.scripting.appEncoding, 'CP1252', 'Restore encoding used by other scripts');
+  assert.equal(f.imports.length, 1);
+  assert.equal(f.queue.numItems, 0);
+});
+
+test('Unicode output paths survive assignment, rendering and import with either output choice', async () => {
+  for (const template of [0, 2]) {
+    const f = fixture({ lossyNative: true });
+    f.comp.name = '中文歌词合成';
+    const options = await f.api.call('renderOptions');
+    const result = await f.api.call('preRender', request(options, template));
+    assert.ok(result.path.includes('LyricMotion预渲染/中文歌词合成-'));
+    assert.deepEqual(f.imports, [result.path]);
+    assert.deepEqual(f.renderEncodings, ['CP936']);
+    assert.ok(f.nativePathCalls.every((call) => call.encoding === 'CP936'));
+    assert.equal(f.scripting.appEncoding, 'CP1252');
+  }
+});
+
+test('A changed output path is rejected before rendering starts', async () => {
+  const f = fixture({ corruptOutputPath: true });
+  const options = await f.api.call('renderOptions');
+  await assert.rejects(f.api.call('preRender', request(options, 2)), /输出路径/);
+  assert.equal(f.renders.length, 0);
+  assert.equal(f.imports.length, 0);
+  assert.equal(f.queue.numItems, 0);
+  assert.equal(f.scripting.appEncoding, 'CP1252');
+});
+
+test('AE-selected video extension is used for rendering and import when localized format is absent', async () => {
+  for (const nativeExtension of ['.mov', '.avi', '.mp4']) {
+    const f = fixture({ lossyNative: true, omitFormat: true, nativeExtension });
+    const options = await f.api.call('renderOptions');
+    const result = await f.api.call('preRender', request(options, 2));
+    assert.ok(result.path.endsWith(nativeExtension), result.path);
+    assert.deepEqual(f.imports, [result.path]);
+    assert.equal(f.files.has(result.path), true);
+    assert.equal(f.renders.length, 1);
+    assert.equal(f.queue.numItems, 0);
+    assert.equal(f.scripting.appEncoding, 'CP1252');
+  }
+});
+
+test('Extension normalization cannot hide a changed filename, directory or unsupported output', async () => {
+  for (const changes of [
+    { renameOutput: true, nativeExtension: '.mov' },
+    { redirectOutput: true, nativeExtension: '.mov' },
+    { nativeExtension: '.png' },
+    { nativeExtension: '.wav' }
+  ]) {
+    const f = fixture({ omitFormat: true, ...changes });
+    const options = await f.api.call('renderOptions');
+    await assert.rejects(f.api.call('preRender', request(options, 2)), /输出路径/);
+    assert.equal(f.renders.length, 0);
+    assert.equal(f.imports.length, 0);
+    assert.equal(f.queue.numItems, 0);
+  }
+});
+
+test('Import failure reports the actual file extension selected by AE', async () => {
+  const f = fixture({ omitFormat: true, nativeExtension: '.mov', importFailure: true });
+  const options = await f.api.call('renderOptions');
+  await assert.rejects(f.api.call('preRender', request(options, 2)), /文件位置：.*\.mov/);
+  assert.equal(f.files.size, 1);
+  assert.equal(f.queue.numItems, 0);
+});
+
+test('Render and import failures restore native encoding and existing queue state', async () => {
+  for (const failure of [{ renderFailure: true }, { importFailure: true }, { cancel: true }]) {
+    const f = fixture({ lossyNative: true, ...failure });
+    const existing = f.queue.items.add(),
+      options = await f.api.call('renderOptions');
+    await assert.rejects(f.api.call('preRender', request(options, 2)));
+    assert.equal(f.scripting.appEncoding, 'CP1252');
+    assert.deepEqual(f.queueItems, [existing]);
+    assert.equal(existing.render, true);
+  }
+});
+
+test('Template application failure restores native encoding and preserves existing queue', async () => {
+  const f = fixture({ lossyNative: true, rejectTemplate: true, appEncoding: 'CP936' });
+  const existing = f.queue.items.add(),
+    options = await f.api.call('renderOptions');
+  await assert.rejects(f.api.call('preRender', request(options, 2)), /无法应用输出模板/);
+  assert.equal(f.nativeCalls[0].encoding, 'CP936');
+  assert.equal(f.scripting.appEncoding, 'CP936');
+  assert.deepEqual(f.queueItems, [existing]);
+  assert.equal(existing.render, true);
+  assert.equal(f.renders.length, 0);
+  assert.deepEqual(JSON.parse(f.payloads.at(-1).result).diagnostics, {
+    stage: 'applyTemplate',
+    encodingBefore: 'CP936',
+    encodingUsed: 'CP936',
+    encodingAfter: 'CP936'
+  });
+});
+
+test('Each render uses the current native encoding and restores it after a different script changes it', async () => {
+  const f = fixture({ lossyNative: true });
+  for (const encoding of ['CP1252', 'CP936', 'UTF-8']) {
+    f.scripting.appEncoding = encoding;
+    const options = await f.api.call('renderOptions');
+    await f.api.call('preRender', request(options, 2));
+    assert.equal(f.scripting.appEncoding, encoding);
+  }
+  assert.ok(f.nativeCalls.every((call) => call.encoding === 'CP936'));
+  assert.equal(f.imports.length, 3);
+});
+
+test('Recorded UTF-8-to-CP936 mojibake is reproduced by the native-boundary fixture', () => {
+  const f = fixture({ lossyNative: true, appEncoding: 'UTF-8' });
+  const om = f.queue.items.add().outputModule(1);
+  assert.throws(() => om.applyTemplate('具有 Alpha 的高品质'), /鍏锋湁 Alpha 鐨勯珮鍝佽川/);
+  assert.equal(f.nativeCalls[0].received, '鍏锋湁 Alpha 鐨勯珮鍝佽川');
+});
+
+test('Rendering follows the Windows ANSI code page, including UTF-8 systems', async () => {
+  for (const nativeEncoding of ['CP1252', 'CP936', 'UTF-8']) {
+    const f = fixture({ lossyNative: true, nativeEncoding });
+    f.setNames(['RGBA Custom']);
+    const options = await f.api.call('renderOptions');
+    await f.api.call('preRender', request(options, 1));
+    assert.equal(f.nativeCalls[0].encoding, nativeEncoding);
+    assert.equal(f.imports.length, 1);
+    assert.equal(f.scripting.appEncoding, 'CP1252');
+  }
+});
+
+test('macOS uses UTF-8 without querying the Windows registry', async () => {
+  const f = fixture({ lossyNative: true, nativeEncoding: 'UTF-8', fileSystem: 'Macintosh' });
+  f.ctx.system.callSystem = () => {
+    throw new Error('Unexpected Windows query');
+  };
+  const options = await f.api.call('renderOptions');
+  await f.api.call('preRender', request(options, 2));
+  assert.equal(f.nativeCalls[0].encoding, 'UTF-8');
+  assert.equal(f.imports.length, 1);
+});
+
+test('Unreadable or unsupported native encoding does not apply a different template or render', async () => {
+  for (const fault of [{ encodingQueryFailure: true }, { encodingUnavailable: true }]) {
+    const f = fixture({ lossyNative: true, ...fault });
+    const options = await f.api.call('renderOptions');
+    await assert.rejects(f.api.call('preRender', request(options, 2)), /编码/);
+    assert.equal(f.applied.length, 0);
+    assert.equal(f.renders.length, 0);
+    assert.equal(f.scripting.appEncoding, 'CP1252');
+    assert.equal(f.queue.numItems, 0);
+  }
+});
+
 test('Chinese template survives a lossy CEP response and imports the rendered video', async () => {
   const f = fixture({ lossyResponse: true }),
     options = await f.api.call('renderOptions');

@@ -11,7 +11,7 @@
     busy = false,
     outputBusy = false,
     stopRequested = false,
-    renderData = null,
+    videoController = null,
     visual = null,
     visualURL = '',
     audioURL = '',
@@ -706,6 +706,7 @@
     const value = (busy = outputBusy || LMSubtitles.busy);
     $('generate').disabled = $('prerender').disabled = $('active-size').disabled = value;
     $('cancel').hidden = !value;
+    $('cancel').textContent = videoController ? '停止预渲染' : '停止生成';
     $('progress').hidden = !value;
     document.querySelector('.output').classList.toggle('busy', value);
     for (const selector of ['.library', '.settings', '.editor-grid', '.top-actions']) {
@@ -792,6 +793,7 @@
     });
   $('cancel').onclick = () => {
     stopRequested = true;
+    if (videoController) videoController.abort();
     LMSubtitles.cancel();
     if (recovering || uncertain) {
       run(async () => {
@@ -864,47 +866,100 @@
   $('prerender').onclick = () =>
     run(async () => {
       if (busy) return;
-      setBusy(true);
-      try {
-        renderData = await LMBridge.call('renderOptions');
-        $('render-name').textContent = renderData.name;
-        $('render-template').textContent = '';
-        renderData.templates.forEach((entry) => {
-          const o = document.createElement('option');
-          o.value = entry.id;
-          o.textContent = entry.name;
-          $('render-template').appendChild(o);
-        });
-        if (renderData.preferred) $('render-template').value = renderData.preferred;
-        $('render-dialog').showModal();
-      } finally {
-        setBusy(false);
-      }
+      validateProject(p);
+      $('render-name').textContent =
+        p.title + ' · ' + p.width + '×' + p.height + ' · ' + p.fps + ' fps';
+      $('render-audio').disabled = !p.audioPath;
+      $('render-audio').checked = !!p.audioPath;
+      $('render-dialog').showModal();
     });
   $('render-confirm').onclick = (event) => {
     event.preventDefault();
     run(async () => {
       if (busy) return;
-      if (!renderData || !$('render-template').value)
-        throw new Error('请重新打开预渲染并选择输出设置');
-      const template = $('render-template').value,
-        data = renderData;
-      renderData = null;
+      validateProject(p);
+      const includeAudio = $('render-audio').checked,
+        format = $('render-format').value,
+        previewBackground = $('background').value,
+        background = previewBackground === 'alpha' && !visual ? 'transparent' : previewBackground,
+        media = visual;
+      if (format === 'mp4' && background === 'transparent')
+        throw new Error('当前预览为透明底。请使用 MOV，或先在预览中选择底色再导出 MP4');
+      if (!p.cues.length) throw new Error('请先添加歌词');
       $('render-dialog').close();
+      pause();
+      stopRequested = false;
+      videoController = new AbortController();
       setBusy(true);
-      $('cancel').hidden = true;
-      $('status').textContent = 'AE 正在预渲染；完成后自动导入项目。可在 AE 渲染队列停止。';
+      $('progress').value = 0;
+      $('status').textContent = '正在准备面板当前歌词的视频…';
+      let target = null,
+        rendered = null;
       try {
-        const result = await LMBridge.call('preRender', {
-          id: data.id,
-          selection: data.selection,
-          template
+        await LMBridge.connect();
+        const warning = await LMSubtitles.prepare(p, {
+          report: (message) => ($('status').textContent = message)
         });
-        $('status').textContent = '已导入 AE 项目：' + result.name + '\n' + result.path;
+        if (stopRequested) throw new Error('已取消预渲染');
+        const project = clone(p),
+          fps = Math.round(project.fps * 1000) / 1000;
+        const first = project.cues.reduce((a, b) => (a.start <= b.start ? a : b));
+        const audioBuffer = includeAudio ? await LMVideo.decodeAudio(project.audioPath) : null;
+        const duration =
+          Math.ceil(
+            Math.max(
+              ...project.cues.map((cue) => cue.end),
+              audioBuffer ? audioBuffer.duration : 0
+            ) * fps
+          ) / fps;
+        if (stopRequested) throw new Error('已取消预渲染');
+        target = await LMBridge.call('prepareVideo', {
+          title: project.title,
+          format,
+          width: project.width,
+          height: project.height,
+          fps,
+          duration,
+          previewTime: first.start + Math.min(0.9, (first.end - first.start) / 2)
+        });
+        rendered = await LMVideo.encode(project, {
+          createMovie: (spec) =>
+            format === 'mp4'
+              ? LMMP4.create(
+                  target.path,
+                  spec,
+                  audioBuffer ? Math.min(2, audioBuffer.numberOfChannels) : 0
+                )
+              : LMBridge.createMovie(target.path, spec),
+          format,
+          signal: videoController.signal,
+          background,
+          media,
+          audio: audioBuffer,
+          onProgress: (state) => {
+            $('progress').max = state.frames;
+            $('progress').value = state.frame;
+            $('status').textContent =
+              state.stage === 'video'
+                ? '正在编码歌词画面：' + state.frame + ' / ' + state.frames + ' 帧'
+                : '正在写入音乐…';
+          }
+        });
+        $('cancel').hidden = true;
+        $('status').textContent = '视频已生成，正在导入 AE 项目…';
+        const result = await LMBridge.call('importVideo', { token: target.token });
+        $('status').textContent =
+          '已导入 AE 项目：' + result.name + '\n' + result.path + (warning ? '\n' + warning : '');
       } catch (e) {
+        if (rendered) e.message += '\n视频已保留：' + rendered.path;
         $('status').textContent = e.message;
         throw e;
       } finally {
+        if (target)
+          try {
+            await LMBridge.call('releaseVideo', { token: target.token });
+          } catch (_) {}
+        videoController = null;
         setBusy(false);
       }
     });

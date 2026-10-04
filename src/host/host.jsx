@@ -6,9 +6,11 @@ var LMHost = (function () {
     lastComp = null,
     lastResult = null,
     lastProject = null,
-    version = '1.5.2';
+    version = '1.5.3',
+    revision = 'panel-video-2';
   var renderChoice = null,
-    renderSequence = 0;
+    renderSequence = 0,
+    pendingVideo = null;
   function unicodeEscape(c) {
     var h = c.charCodeAt(0).toString(16);
     while (h.length < 4) h = '0' + h;
@@ -851,7 +853,7 @@ var LMHost = (function () {
         p.fps
       );
       main.parentFolder = folder;
-      main.comment = 'LyricMotion 1.5.2 · 透明歌词叠加层 · 每句预合成内为可编辑文字和字旁形状';
+      main.comment = 'LyricMotion 1.5.3 · 透明歌词叠加层 · 每句预合成内为可编辑文字和字旁形状';
       job = {
         project: proj,
         p: p,
@@ -1268,6 +1270,21 @@ var LMHost = (function () {
     }
     return out;
   }
+  function nativeOutputEncoding() {
+    var encoding = 'UTF-8';
+    if (File.fs === 'Windows') {
+      // AE's native output APIs decode string arguments using Windows ACP,
+      // which can differ from ExtendScript's initial CP1252 application encoding.
+      var result = system.callSystem(
+        'reg.exe query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage" /v ACP'
+      );
+      var match = /\bACP\s+REG_SZ\s+([0-9]{3,5})\b/.exec(String(result));
+      if (!match) throw new Error('无法读取 Windows 系统字符编码，已停止预渲染');
+      encoding = match[1] === '65001' ? 'UTF-8' : 'CP' + match[1];
+    }
+    if (!File.isEncodingAvailable(encoding)) throw new Error('AE 不支持系统字符编码：' + encoding);
+    return encoding;
+  }
   function renderOptions() {
     renderChoice = null;
     var c = renderTarget(),
@@ -1329,8 +1346,15 @@ var LMHost = (function () {
     var states = [],
       rq = queue.items.add(comp),
       savedFile,
+      previousEncoding = $.appEncoding,
+      renderEncoding,
+      renderFailure,
       stage = '设置输出模块';
     try {
+      // The template, output File and import File all cross the native boundary.
+      // Keep its system encoding for the whole transaction, then restore it.
+      $.appEncoding = nativeOutputEncoding();
+      renderEncoding = $.appEncoding;
       rq.render = false;
       var om = rq.outputModule(1);
       if (selected.id !== 'current') {
@@ -1339,12 +1363,14 @@ var LMHost = (function () {
         try {
           om.applyTemplate(selected.name);
         } catch (templateError) {
-          throw new Error(
+          var templateFailure = new Error(
             '无法应用输出模板「' +
               selected.name +
               '」。请重新选择模板，或使用“当前 AE 默认输出设置”。' +
               String(templateError.message || templateError)
           );
+          templateFailure.diagnostics = { stage: 'applyTemplate' };
+          throw templateFailure;
         }
         om = rq.outputModule(1);
       }
@@ -1376,6 +1402,29 @@ var LMHost = (function () {
       if (!dest.create()) throw new Error('无法创建素材子目录');
       savedFile = File(dest.fsName + '/' + safeName(comp.name) + ext);
       om.file = savedFile;
+      var boundFile = om.file,
+        boundPath = boundFile ? String(boundFile.fsName).replace(/\\/g, '/') : '',
+        expectedPath = String(savedFile.fsName).replace(/\\/g, '/');
+      if (File.fs === 'Windows') {
+        boundPath = boundPath.toLowerCase();
+        expectedPath = expectedPath.toLowerCase();
+      }
+      // AE may replace the suffix to match the selected output module. Only
+      // accept supported video suffixes; the directory and stem must match.
+      var videoSuffix = /\.(mov|avi|mp4)$/i;
+      if (
+        !videoSuffix.test(boundPath) ||
+        boundPath.replace(videoSuffix, '') !== expectedPath.replace(videoSuffix, '')
+      ) {
+        var pathFailure = new Error('AE 输出路径未正确写入，已停止预渲染');
+        pathFailure.diagnostics = {
+          stage: 'outputFile',
+          expectedPath: savedFile.fsName,
+          actualPath: boundFile ? boundFile.fsName : null
+        };
+        throw pathFailure;
+      }
+      savedFile = boundFile;
       rq.timeSpanStart = 0;
       rq.timeSpanDuration = comp.duration;
       for (i = 1; i <= queue.numItems; i++) {
@@ -1406,15 +1455,19 @@ var LMHost = (function () {
       video.parentFolder = folder;
       video.layers.add(footage);
       video.openInViewer();
-      return { name: video.name, path: savedFile.fsName };
+      return { name: video.name, path: savedFile.fsName, appEncoding: renderEncoding };
     } catch (e) {
-      throw new Error(
+      renderFailure = new Error(
         '预渲染：' +
           stage +
           '失败。' +
           String(e.message || e) +
           (savedFile && savedFile.exists ? '\n文件位置：' + savedFile.fsName : '')
       );
+      renderFailure.diagnostics = e.diagnostics || { stage: stage };
+      renderFailure.diagnostics.encodingBefore = previousEncoding;
+      renderFailure.diagnostics.encodingUsed = renderEncoding;
+      throw renderFailure;
     } finally {
       for (var k = 0; k < states.length; k++)
         try {
@@ -1423,13 +1476,108 @@ var LMHost = (function () {
       try {
         if (rq.status !== RQItemStatus.RENDERING) rq.remove();
       } catch (ignoreRemove) {}
+      $.appEncoding = previousEncoding;
+      if (renderFailure) renderFailure.diagnostics.encodingAfter = $.appEncoding;
+    }
+  }
+  function prepareVideo(args) {
+    if (args.format && args.format !== 'mov' && args.format !== 'mp4')
+      throw new Error('请选择 MOV 或 MP4');
+    if (job) throw new Error('请先完成或停止当前文字生成');
+    if (!app.project) app.newProject();
+    if (
+      !isFinite(args.width) ||
+      !isFinite(args.height) ||
+      args.width < 1 ||
+      args.height < 1 ||
+      args.width > 8192 ||
+      args.height > 8192 ||
+      !isFinite(args.fps) ||
+      args.fps < 1 ||
+      args.fps > 120 ||
+      !isFinite(args.duration) ||
+      args.duration <= 0 ||
+      args.duration > 86400
+    )
+      throw new Error('视频参数无效');
+    var project = app.project,
+      parent = project.file ? project.file.parent : Folder.myDocuments,
+      root = Folder(parent.fsName + '/LyricMotion预渲染'),
+      token = String(new Date().getTime()) + '-' + ++renderSequence;
+    if (!root.exists && !root.create()) throw new Error('无法创建预渲染目录');
+    var dest = Folder(root.fsName + '/' + safeName(args.title) + '-' + token);
+    if (!dest.create()) throw new Error('无法创建视频目录');
+    pendingVideo = {
+      project: project,
+      token: token,
+      file: File(
+        dest.fsName + '/' + safeName(args.title) + (args.format === 'mp4' ? '.mp4' : '.mov')
+      ),
+      width: Math.round(args.width),
+      height: Math.round(args.height),
+      fps: args.fps,
+      duration: args.duration,
+      previewTime: Math.max(0, Math.min(args.duration, Number(args.previewTime) || 0)),
+      name: '预渲染 · ' + safeName(args.title)
+    };
+    return { token: token, path: pendingVideo.file.fsName };
+  }
+  function importVideo(args) {
+    var video = pendingVideo;
+    if (!video || args.token !== video.token) throw new Error('视频导入请求已失效');
+    if (app.project !== video.project)
+      throw new Error('AE 项目已切换；视频已保留：' + video.file.fsName);
+    if (!video.file.exists) throw new Error('视频尚未写入完成');
+    var previousEncoding = $.appEncoding,
+      footage = null,
+      folder = null,
+      comp = null;
+    try {
+      $.appEncoding = nativeOutputEncoding();
+      footage = video.project.importFile(new ImportOptions(video.file));
+      folder = video.project.items.addFolder('映词 · 预渲染');
+      footage.parentFolder = folder;
+      comp = video.project.items.addComp(
+        video.name,
+        video.width,
+        video.height,
+        1,
+        video.duration,
+        video.fps
+      );
+      comp.parentFolder = folder;
+      comp.layers.add(footage);
+      comp.time = Math.min(video.previewTime, video.duration - 1 / video.fps);
+      comp.openInViewer();
+      pendingVideo = null;
+      return { name: comp.name, id: comp.id, path: video.file.fsName };
+    } catch (error) {
+      try {
+        if (comp) comp.remove();
+      } catch (ignoreComp) {}
+      try {
+        if (footage) footage.remove();
+      } catch (ignoreFootage) {}
+      try {
+        if (folder) folder.remove();
+      } catch (ignoreFolder) {}
+      throw new Error(
+        '视频已生成，但导入 AE 失败：' +
+          String(error.message || error) +
+          '\n文件位置：' +
+          video.file.fsName
+      );
+    } finally {
+      $.appEncoding = previousEncoding;
     }
   }
   var api = {
     info: function () {
       return {
         version: version,
+        revision: revision,
         ae: app.version,
+        appEncoding: $.appEncoding,
         building: !!job,
         progress: job ? progress() : null,
         lastResult: app.project === lastProject ? lastResult : null
@@ -1450,6 +1598,12 @@ var LMHost = (function () {
     openLocal: openLocal,
     renderOptions: renderOptions,
     preRender: preRender,
+    prepareVideo: prepareVideo,
+    importVideo: importVideo,
+    releaseVideo: function (args) {
+      if (pendingVideo && args.token === pendingVideo.token) pendingVideo = null;
+      return {};
+    },
     folder: function () {
       var d = Folder.selectDialog('选择预设／素材所在文件夹');
       return { path: d ? d.fsName : null };
@@ -1474,7 +1628,8 @@ var LMHost = (function () {
       } catch (e) {
         return stringify({
           ok: false,
-          error: e.toString() + (e.line ? '（行 ' + e.line + '）' : '')
+          error: e.toString() + (e.line ? '（行 ' + e.line + '）' : ''),
+          diagnostics: e.diagnostics || null
         });
       }
     }

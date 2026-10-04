@@ -234,5 +234,5 @@ window.LMRender = (() => {
     }
     ctx.restore();
   }
-  return { render, paintScene };
+  return { render, paintScene, backdrop };
 })();

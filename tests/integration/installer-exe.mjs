@@ -124,7 +124,8 @@ try {
       {
         version: metadata.version,
         customDirectory: true,
-        installedCoreFiles: 30,
+        installedCoreFiles: JSON.parse(fs.readFileSync(path.join(root, 'dist/build-files.json')))
+          .files.length,
         repeatInstallReused: resources.length,
         relocationDownloads: 0,
         previousUninstallPreservesActiveEntry: true,
