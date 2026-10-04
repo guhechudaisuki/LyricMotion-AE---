@@ -8,7 +8,7 @@ window.LMBridge = (() => {
     os = req ? req('os') : null;
   let ready = false,
     connecting = null;
-  const version = '1.5.1';
+  const version = '1.5.2';
   const extensionRoot =
     cep && path
       ? decodeURI(cep.getSystemPath('extension'))

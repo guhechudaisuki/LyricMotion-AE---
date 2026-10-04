@@ -12,6 +12,13 @@ if (
   )
 )
   throw new Error('Publish resource commit and pin resources-lock.json before packaging');
+const syntax = spawnSync(process.execPath, ['tests/integration/extendscript-compiler.mjs'], {
+  cwd: root,
+  stdio: 'inherit',
+  windowsHide: true
+});
+if (syntax.error) throw syntax.error;
+if (syntax.status) throw new Error('Native ExtendScript compilation failed; packaging stopped');
 const nsis = localTool('NSIS_PATH', 'makensis');
 const result = spawnSync(
   nsis,

@@ -8,7 +8,7 @@
 
 ## 兼容边界
 
-- `shared` / `host`：ES3。构建时用 Acorn 校验，并处理 ExtendScript 的正则字符类斜线差异和非 ASCII 编码。
+- `shared` / `host`：ES3。构建时用 Acorn 校验，并处理 ExtendScript 的嵌套条件表达式括号、正则字符类斜线差异和非 ASCII 编码。
 - `panel`：CEP / 浏览器 JavaScript，ES2020 语法上限；浏览器独立预览不提供 AE 操作。
 - `node`：CEP 内置 Node 能力，仅负责文件操作及结构化资源路径处理。
 - `scripts`：Node.js 24 开发工具，不打入面板。

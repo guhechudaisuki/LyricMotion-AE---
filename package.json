@@ -1,6 +1,6 @@
 {
   "name": "lyricmotion-ae",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "private": true,
   "description": "映词 LyricMotion：面向 MAD / AMV 的透明动态歌词排版",
   "scripts": {
@@ -8,6 +8,8 @@
     "bundle": "node scripts/bundle-curated.mjs",
     "test": "node --test tests/unit/*.test.mjs",
     "test:panel": "node tests/integration/prerender-panel.mjs && node tests/integration/translation-cache.mjs",
+    "test:extendscript": "node tests/integration/extendscript-compiler.mjs",
+    "tools:extendscript": "node scripts/setup-extendscript-compiler.mjs",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "selfcheck": "npm run test",

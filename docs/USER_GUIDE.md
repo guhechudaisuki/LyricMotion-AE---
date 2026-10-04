@@ -131,4 +131,6 @@ FFX 按名称推测用途，请在集合中检查“作用于文字/字旁形状
 
 ## 源码构建
 
-开发需要 Node.js 24。运行 `npm ci`、`npm run check`，即可检查并构建源码；`npm run package` 使用 NSIS 3 生成在线安装器。默认资源按固定提交单独存放，开发者可运行 `npm run resources:fetch` 获取，用户安装时由 EXE 自动完成。构建时转换 ExtendScript 不接受的正则字符类斜线，并作 ES3 静态解析。资源安装完成后，歌词排版可离线使用；只有开启自动翻译且缺少所需缓存时才需要配置的在线服务。
+开发需要 Node.js 24。运行 `npm ci`、`npm run check`，即可检查并构建源码。Windows 上运行 `npm run tools:extendscript` 获取固定版本、校验 SHA-512 的独立 ExtendScript 编译工具，再运行 `npm run test:extendscript` 检查实际宿主脚本；此过程不会启动或连接 AE。工具来自 `jsxbin@2.3.0` 所携带的 Adobe 编译器，仅存于被忽略的 `.local/tools`，不随插件分发。也可通过 `EXTENDSCRIPT_COMPILER_PATH` 指定已有的 `esdcorelibinterface.node`。CI 和 `npm run package` 都会执行原生编译检查，通过后才使用 NSIS 3 生成在线安装器。
+
+默认资源按固定提交单独存放，开发者可运行 `npm run resources:fetch` 获取，用户安装时由 EXE 自动完成。构建时补全 ExtendScript 嵌套条件表达式所需的括号、转换正则字符类斜线，并作 ES3 静态解析。资源安装完成后，歌词排版可离线使用；只有开启自动翻译且缺少所需缓存时才需要配置的在线服务。

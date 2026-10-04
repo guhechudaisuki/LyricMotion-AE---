@@ -1,9 +1,31 @@
 import { parse, tokenizer } from 'acorn';
 
+function groupNestedConditionals(source) {
+  const pending = [parse(source, { ecmaVersion: 3, preserveParens: true })];
+  const insertions = [];
+  while (pending.length) {
+    const node = pending.pop();
+    if (!node || typeof node.type !== 'string') continue;
+    // ExtendScript requires parentheses around a conditional in the true branch.
+    // Preserve existing parentheses so compiling an artifact again is harmless.
+    if (node.type === 'ConditionalExpression' && node.consequent.type === 'ConditionalExpression') {
+      insertions.push([node.consequent.start, '('], [node.consequent.end, ')']);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) pending.push(...value);
+      else if (value && typeof value === 'object') pending.push(value);
+    }
+  }
+  for (const [offset, text] of insertions.sort((a, b) => b[0] - a[0]))
+    source = source.slice(0, offset) + text + source.slice(offset);
+  return { source, groupedConditionals: insertions.length / 2 };
+}
+
 // Adobe's ExtendScript lexer rejects a raw slash inside regex character classes,
 // although the same literal is accepted by standard ES3 JavaScript parsers.
 export function compileExtendScript(source) {
-  parse(source, { ecmaVersion: 3 });
+  const grouped = groupNestedConditionals(source);
+  source = grouped.source;
   const tokens = tokenizer(source, { ecmaVersion: 3 });
   let token,
     result = '',
@@ -42,5 +64,5 @@ export function compileExtendScript(source) {
     (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')
   );
   parse(result, { ecmaVersion: 3 });
-  return { source: result, escapedClasses };
+  return { source: result, escapedClasses, groupedConditionals: grouped.groupedConditionals };
 }

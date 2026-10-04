@@ -84,5 +84,5 @@ fs.writeFileSync(
   'utf8'
 );
 console.log(
-  `Built ${files.length} files for LyricMotion ${metadata.version}; escaped ${compiled.escapedClasses} ExtendScript regex classes`
+  `Built ${files.length} files for LyricMotion ${metadata.version}; escaped ${compiled.escapedClasses} regex classes; grouped ${compiled.groupedConditionals} nested conditionals for ExtendScript`
 );
