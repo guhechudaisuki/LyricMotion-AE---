@@ -78,19 +78,19 @@ try {
   succeed('Prepare', first);
   panel(first);
   succeed('Register', first);
-  assert.equal(fs.realpathSync(entry), fs.realpathSync(first));
+  assert.equal(fs.realpathSync.native(entry), fs.realpathSync.native(first));
   assert.equal(fs.readFileSync(path.join(entry, 'resources/a.txt'), 'utf8'), 'resource');
 
   succeed('Prepare', second);
   reject('Register', second);
-  assert.equal(fs.realpathSync(entry), fs.realpathSync(first));
+  assert.equal(fs.realpathSync.native(entry), fs.realpathSync.native(first));
   panel(second);
   succeed('Register', second);
   succeed('Register', second);
-  assert.equal(fs.realpathSync(entry), fs.realpathSync(second));
+  assert.equal(fs.realpathSync.native(entry), fs.realpathSync.native(second));
   fs.writeFileSync(path.join(first, 'personal.txt'), 'keep');
   succeed('Uninstall', first);
-  assert.equal(fs.realpathSync(entry), fs.realpathSync(second));
+  assert.equal(fs.realpathSync.native(entry), fs.realpathSync.native(second));
   assert.equal(fs.readFileSync(path.join(first, 'personal.txt'), 'utf8'), 'keep');
   assert.equal(fs.existsSync(path.join(first, 'index.html')), false);
 
@@ -104,7 +104,7 @@ try {
     })
   );
   reject('Uninstall', second);
-  assert.equal(fs.realpathSync(entry), fs.realpathSync(second));
+  assert.equal(fs.realpathSync.native(entry), fs.realpathSync.native(second));
   fs.writeFileSync(listPath, list);
   fs.symlinkSync(occupied, path.join(second, 'resources/external'), 'junction');
   fs.writeFileSync(
@@ -126,7 +126,7 @@ try {
   assert.equal(fs.lstatSync(entry).isSymbolicLink(), false);
   assert.equal(fs.readFileSync(path.join(entry, 'personal.txt'), 'utf8'), 'original');
   succeed('Register', third);
-  assert.equal(fs.realpathSync(entry), fs.realpathSync(third));
+  assert.equal(fs.realpathSync.native(entry), fs.realpathSync.native(third));
   const old = path.join(backup, fs.readdirSync(backup)[0]);
   assert.equal(fs.readFileSync(path.join(old, 'personal.txt'), 'utf8'), 'original');
   assert.equal(fs.readFileSync(path.join(old, 'resources/a.txt'), 'utf8'), 'resource');

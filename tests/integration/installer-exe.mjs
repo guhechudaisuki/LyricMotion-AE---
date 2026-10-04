@@ -79,7 +79,7 @@ try {
     invoke(executable, ['/S', `/D=${directory}`], { windowsVerbatimArguments: true });
   install(first);
   checkFiles(first);
-  assert.equal(fs.realpathSync(entry), fs.realpathSync(first));
+  assert.equal(fs.realpathSync.native(entry), fs.realpathSync.native(first));
   assert.equal(
     JSON.parse(fs.readFileSync(path.join(first, 'resources/install-receipt.json'))).downloaded,
     0
@@ -91,7 +91,7 @@ try {
   );
   install(second);
   checkFiles(second);
-  assert.equal(fs.realpathSync(entry), fs.realpathSync(second));
+  assert.equal(fs.realpathSync.native(entry), fs.realpathSync.native(second));
   assert.equal(
     JSON.parse(fs.readFileSync(path.join(second, 'resources/install-receipt.json'))).downloaded,
     0
@@ -105,7 +105,7 @@ try {
   uninstall(first);
   assert.equal(fs.readFileSync(path.join(first, 'personal.txt'), 'utf8'), 'keep');
   assert.equal(fs.existsSync(path.join(first, 'index.html')), false);
-  assert.equal(fs.realpathSync(entry), fs.realpathSync(second));
+  assert.equal(fs.realpathSync.native(entry), fs.realpathSync.native(second));
   // reg.exe uses the system code page; query only checks that the active key
   // survived. The next uninstall verifies that it identifies the second path.
   invoke('reg.exe', ['query', `HKCU\\${registry}`, '/v', 'InstallLocation']);

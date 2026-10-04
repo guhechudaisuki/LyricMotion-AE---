@@ -80,14 +80,17 @@ Function DirectoryLeave
 FunctionEnd
 Section "安装映词"
   SetShellVarContext current
-  nsExec::ExecToLog 'powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\Manage-Installation.ps1" -Action Prepare -Destination "$INSTDIR" -ExtensionDirectory "${LM_EXTENSION_DIRECTORY}" -Version "${VERSION}"'
+  nsExec::ExecToStack 'powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\Manage-Installation.ps1" -Action Prepare -Destination "$INSTDIR" -ExtensionDirectory "${LM_EXTENSION_DIRECTORY}" -Version "${VERSION}"'
   Pop $0
+  Pop $1
+  DetailPrint "$1"
   ${If} $0 != 0
     MessageBox MB_ICONSTOP "无法使用此安装目录。请查看安装详情并重新选择目录。" /SD IDOK
     SetErrorLevel 1
     Abort
   ${EndIf}
   ReadRegStr $PreviousDirectory HKCU "${LM_UNINSTALL_KEY}" "InstallLocation"
+  GetFullPathName $INSTDIR "$INSTDIR"
   ${If} $PreviousDirectory == ""
     StrCpy $PreviousDirectory "${LM_EXTENSION_DIRECTORY}"
   ${EndIf}
@@ -133,6 +136,11 @@ Section "安装映词"
 SectionEnd
 Section "Uninstall"
   SetShellVarContext current
+  GetFullPathName $INSTDIR "$INSTDIR"
+  ReadRegStr $PreviousDirectory HKCU "${LM_UNINSTALL_KEY}" "InstallLocation"
+  ${If} $PreviousDirectory != ""
+    GetFullPathName $PreviousDirectory "$PreviousDirectory"
+  ${EndIf}
   InitPluginsDir
   SetOutPath "$PLUGINSDIR"
   File "Manage-Installation.ps1"
@@ -145,8 +153,7 @@ Section "Uninstall"
   ${EndIf}
   Delete "$INSTDIR\卸载映词.exe"
   RMDir "$INSTDIR"
-  ReadRegStr $0 HKCU "${LM_UNINSTALL_KEY}" "InstallLocation"
-  ${If} $0 == $INSTDIR
+  ${If} $PreviousDirectory == $INSTDIR
     DeleteRegKey HKCU "${LM_UNINSTALL_KEY}"
   ${EndIf}
 SectionEnd

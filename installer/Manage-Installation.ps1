@@ -8,8 +8,28 @@ param(
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 $ErrorActionPreference = 'Stop'
 $extensionId = 'com.lyricmotion.ae.panel'
+# NSIS changes the working directory; CodeDOM needs absolute assembly references.
+Add-Type -ReferencedAssemblies @([object].Assembly.Location, [Uri].Assembly.Location) -TypeDefinition @'
+using System.Runtime.InteropServices;
+using System.Text;
+public static class LyricMotionPaths {
+  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+  public static extern uint GetLongPathName(string path, StringBuilder result, uint capacity);
+}
+'@
 
 function Full-Path([string]$Value) {
+  $probe = [IO.Path]::GetFullPath($Value)
+  $suffix = ''
+  $buffer = New-Object Text.StringBuilder 32768
+  while ($probe) {
+    $length = [LyricMotionPaths]::GetLongPathName($probe, $buffer, $buffer.Capacity)
+    if ($length -gt 0 -and $length -lt $buffer.Capacity) { return ($buffer.ToString().TrimEnd('\') + $suffix).TrimEnd('\') }
+    $parent = [IO.Path]::GetDirectoryName($probe.TrimEnd('\'))
+    if (!$parent -or $parent -eq $probe) { break }
+    $suffix = '\' + [IO.Path]::GetFileName($probe.TrimEnd('\')) + $suffix
+    $probe = $parent
+  }
   return [IO.Path]::GetFullPath($Value).TrimEnd('\')
 }
 function Is-Within([string]$Value, [string]$Parent) {
