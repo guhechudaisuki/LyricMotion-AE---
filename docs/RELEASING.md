@@ -11,13 +11,13 @@ Node.js 24、NSIS 3、Windows 系统 curl 和目标 GitHub 仓库写入权限。
 3. 运行 `npm run resources:pack`。将 `artifacts/resource-upload/` 提交到独立版本资源分支。
 4. 将该资源提交的完整 SHA 写入 `config/resources-lock.json` 的 `baseUrl`。禁止使用会漂移的分支 URL。
 5. 在空目录运行同一 PowerShell 下载脚本，验证下载、解压、SHA-256、本地复用、损坏修复、失败路径及断点继续。
-6. 运行 `npm run test:panel`、`npm run build`、`npm run package`。NSIS 只嵌入插件代码、下载器和校验清单。
+6. 运行 `npm run test:panel`、`npm run test:installer`、`npm run build`、`npm run test:installer:exe`、`npm run package`。EXE 检查使用同一 NSIS 脚本及隔离的扩展目录、注册项和小型资源清单，验证自选目录、迁移、复用和卸载。NSIS 只嵌入插件代码、目录管理器、下载器和校验清单。
 7. 从不含 `.local/` 的干净源码副本执行构建。检查 `git diff --check`、文件清单、机器路径和凭据扫描。
-8. 提交源码、创建版本标签、发布 Release，只附 `.exe`。将安装器 SHA-256 写入 Release 正文，并核对远端附件。
+8. 提交源码、创建版本标签、发布 Release，只附 `.exe`。仓库简介和 Release 正文只写功能描述；检查记录和安装器 SHA-256 保存在工程资料及本地发布报告中，核对远端附件的哈希。
 
 ## 历史版本
 
-1.0.0、1.1.0、1.2.0、1.3.0、1.4.0、1.4.1、1.4.2 只有已保存的更新文档。历史归档标签指向单独的文档提交，页面明确没有旧源码及旧安装包。不能将 1.5.0 源码打包改名为历史版本。
+1.0.0、1.1.0、1.2.0、1.3.0、1.4.0、1.4.1、1.4.2 只有已保存的更新文档。历史归档标签指向单独的文档提交，Release 标题标明“更新记录归档”，正文列出该版功能。不能将当前源码或安装器改名为历史版本。
 
 ## AE 验收
 

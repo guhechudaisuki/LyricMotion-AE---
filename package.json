@@ -1,6 +1,6 @@
 {
   "name": "lyricmotion-ae",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "private": true,
   "description": "映词 LyricMotion：面向 MAD / AMV 的透明动态歌词排版",
   "scripts": {
@@ -17,7 +17,8 @@
     "resources:fetch": "node scripts/fetch-resources.mjs",
     "resources:verify": "node scripts/verify-resources.mjs",
     "resources:pack": "node scripts/pack-resources.mjs",
-    "test:installer": "node tests/integration/installer-resources.mjs"
+    "test:installer": "node tests/integration/installer-resources.mjs && node tests/integration/installer-locations.mjs",
+    "test:installer:exe": "node tests/integration/installer-exe.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

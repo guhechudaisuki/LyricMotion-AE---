@@ -4,6 +4,7 @@ param(
   [Parameter(Mandatory = $true)][string]$Destination,
   [string]$OfflineObjects,
   [string]$CacheDirectory,
+  [string]$ReuseDirectory,
   [int]$Concurrency = 8
 )
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
@@ -82,6 +83,14 @@ try {
     $target = Join-Path $dest $file.path
     if (Test-Resource $target $file.sha256 $file.bytes) { $available[$file.sha256] = $target; $reused++ }
     else { $missing.Add($file) }
+  }
+  if ($ReuseDirectory -and [IO.Path]::GetFullPath($ReuseDirectory) -ne $dest) {
+    $previous = [IO.Path]::GetFullPath($ReuseDirectory)
+    foreach ($file in $missing) {
+      if ($available.ContainsKey($file.sha256)) { continue }
+      $candidate = Join-Path $previous $file.path
+      if (Test-Resource $candidate $file.sha256 $file.bytes) { $available[$file.sha256] = $candidate }
+    }
   }
   $queue = New-Object 'System.Collections.Generic.Queue[object]'
   $queued = @{}

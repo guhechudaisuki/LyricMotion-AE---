@@ -38,7 +38,7 @@ fs.writeFileSync(
     files: files.length
   })
 );
-const run = (offline = objects) =>
+const run = (offline = objects, destination = dest, reuseDirectory) =>
   spawnSync(
     'powershell.exe',
     [
@@ -54,11 +54,12 @@ const run = (offline = objects) =>
       '-ManifestFile',
       manifest,
       '-Destination',
-      dest,
+      destination,
       '-OfflineObjects',
       offline,
       '-CacheDirectory',
-      cache
+      cache,
+      ...(reuseDirectory ? ['-ReuseDirectory', reuseDirectory] : [])
     ],
     { encoding: 'utf8', windowsHide: true }
   );
@@ -87,8 +88,14 @@ try {
   assert.equal(result.status, 1);
   assert.equal(fs.readFileSync(path.join(dest, 'resources/b.txt'), 'utf8'), 'old');
   assert.match(result.stdout, /validation|verification|declared size/i);
+  fs.writeFileSync(path.join(dest, 'resources/b.txt'), 'beta');
+  const relocated = path.join(temporary, 'new-location');
+  result = run(path.join(temporary, 'must-not-be-read'), relocated, dest);
+  assert.equal(result.status, 0, result.stdout);
+  assert.match(result.stdout, /installed=3; reused=0; downloaded=0;/);
+  assert.equal(fs.readFileSync(path.join(relocated, 'resources/b.txt'), 'utf8'), 'beta');
   console.log(
-    '5/5 installer resource flows passed: first install, reuse, duplicate reuse, repair, and failed download preservation.'
+    '6/6 installer resource flows passed: first install, reuse, duplicate reuse, repair, failed download preservation, and relocation reuse.'
   );
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });

@@ -6,7 +6,7 @@ var LMHost = (function () {
     lastComp = null,
     lastResult = null,
     lastProject = null,
-    version = '1.5.0';
+    version = '1.5.1';
   var renderChoice = null,
     renderSequence = 0;
   function unicodeEscape(c) {
@@ -851,7 +851,7 @@ var LMHost = (function () {
         p.fps
       );
       main.parentFolder = folder;
-      main.comment = 'LyricMotion 1.5.0 · 透明歌词叠加层 · 每句预合成内为可编辑文字和字旁形状';
+      main.comment = 'LyricMotion 1.5.1 · 透明歌词叠加层 · 每句预合成内为可编辑文字和字旁形状';
       job = {
         project: proj,
         p: p,

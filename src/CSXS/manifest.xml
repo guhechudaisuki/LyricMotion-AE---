@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.lyricmotion.ae" ExtensionBundleVersion="1.5.0" ExtensionBundleName="映词 LyricMotion">
-  <ExtensionList><Extension Id="com.lyricmotion.ae.panel" Version="1.5.0"/></ExtensionList>
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.lyricmotion.ae" ExtensionBundleVersion="1.5.1" ExtensionBundleName="映词 LyricMotion">
+  <ExtensionList><Extension Id="com.lyricmotion.ae.panel" Version="1.5.1"/></ExtensionList>
   <ExecutionEnvironment>
     <HostList><Host Name="AEFT" Version="[22.0,99.9]"/></HostList>
     <LocaleList><Locale Code="All"/></LocaleList>

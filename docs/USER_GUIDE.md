@@ -2,11 +2,15 @@
 
 独立的 After Effects 动态歌词面板，面向 MAD / AMV 画面叠字。Windows，AE 2022 或更高版本。项目与扩展 ID 独立于 JIZURA。
 
+## 1.5.1 自选安装位置
+
+安装器提供一个目录选择项：插件和 resources 一起存放在所选文件夹，自动在 AE 标准扩展目录建立入口。升级时默认显示上次位置，也可改到新的专用目录；已有资源会先校验复用。完成页显示最终安装位置。卸载只清理插件自带文件，保留额外添加的文件。
+
 ## 1.5.0 安装与默认资源
 
 Release 提供 `LyricMotion-AE-1.5.0-setup.exe`，运行后自动检查安装目录的 resources，只下载缺失或损坏的资源。用户无需单独运行 PowerShell、安装开发工具或下载资源包。包含 522 项精选预设（503 FFX、19 AEP）及其预览和工程实际引用的素材；缺失素材的 Symbols 合集已排除。
 
-安装完成后，重新打开面板，顶部应显示 1.5.0。默认库使用相对路径，可在其他电脑使用。旧方案引用的个人素材仍需用户自行保留；自加素材移动后需重新扫描。
+安装当前版本后，重新打开面板，顶部应显示 1.5.1。默认库使用相对路径，可在其他电脑使用。旧方案引用的个人素材仍需用户自行保留；自加素材移动后需重新扫描。
 
 ## 1.4.3 预渲染模板报错修复
 
@@ -44,7 +48,7 @@ Release 提供 `LyricMotion-AE-1.5.0-setup.exe`，运行后自动检查安装目
 
 ## 安装与打开
 
-运行从 [Release](https://github.com/guhechudaisuki/LyricMotion-AE---/releases/latest) 下载的 `LyricMotion-AE-1.5.0-setup.exe`。安装到当前用户 Adobe CEP 扩展目录。自行重启 AE，在 **窗口 → 扩展 → 映词 LyricMotion · 动态歌词** 打开。
+运行从 [Release](https://github.com/guhechudaisuki/LyricMotion-AE---/releases/latest) 下载的 `LyricMotion-AE-1.5.1-setup.exe`，选择插件和 resources 的存放目录。安装器自动建立当前用户的 Adobe CEP 扩展入口。自行重启 AE，在 **窗口 → 扩展 → 映词 LyricMotion · 动态歌词** 打开。
 
 AE 首选项 → 脚本与表达式：启用“允许脚本写入文件和访问网络”。建议面板宽度 1000 像素以上，可停靠；没有手机版。
 
