@@ -116,7 +116,16 @@ window.LMTranslationCache = (() => {
       const note = normalizeLines(result.note).trim();
       if (note.split('\n').length !== song.texts[result.index].trim().split('\n').length)
         throw problem('译文分行与主歌词不一致，未写入翻译缓存。', 'translation-cache-results');
-      byIndex.set(result.index, { index: result.index, source: song.texts[result.index], note });
+      const checked = { index: result.index, source: song.texts[result.index], note };
+      for (const [key, limit] of [
+        ['decoration', 64],
+        ['pinyin', 4000]
+      ]) {
+        const value = result[key];
+        if (typeof value === 'string' && value.length <= limit && !/[\x00-\x1f]/.test(value))
+          checked[key] = value.trim();
+      }
+      byIndex.set(result.index, checked);
     }
     return song.active.map((index) => byIndex.get(index));
   }
@@ -308,6 +317,8 @@ window.LMTranslationCache = (() => {
                   index: result.index,
                   source: song.sources[result.index],
                   note: result.note,
+                  ...(result.decoration == null ? {} : { decoration: result.decoration }),
+                  ...(result.pinyin == null ? {} : { pinyin: result.pinyin }),
                   target: lang.display
                 }))
               : null

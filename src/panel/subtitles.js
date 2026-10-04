@@ -51,30 +51,78 @@ window.LMSubtitles = (() => {
       !cue.noteExplicit && (!cue.note || cue.noteAutomatic) && LMCore.needsNote(project, cue, index)
     );
   }
+  function clearAccent(cue) {
+    delete cue.decoration;
+    delete cue.pinyin;
+    delete cue.annotationSource;
+    delete cue.annotationTarget;
+  }
   // Run after layout/text/settings changes. Manual notes are never replaced.
   function sync(project) {
     const key = songKey(project),
-      available = active && active.key === key ? active.results : null;
+      available = new Map(
+        active && active.key === key ? active.results.map((entry) => [entry.index, entry]) : []
+      );
     let changed = false;
     project.cues.forEach((cue, index) => {
+      const kind = LMCore.annotationKind(project, cue, index);
       if (
         cue.noteAutomatic &&
         (!settings.enabled ||
           cue.noteExplicit ||
           cue.noteSource !== cue.text ||
           cue.noteTarget !== settings.target ||
-          !LMCore.needsNote(project, cue, index))
+          kind !== 'subtitle')
       ) {
         stripAutomatic(cue);
         changed = true;
       }
-      const result = available && available[index];
-      if (settings.enabled && eligible(project, cue, index) && !cue.note && result) {
+      if (
+        (cue.decoration != null || cue.pinyin != null) &&
+        (!settings.enabled ||
+          kind === 'none' ||
+          kind === 'subtitle' ||
+          cue.annotationSource !== cue.text ||
+          cue.annotationTarget !== settings.target)
+      ) {
+        clearAccent(cue);
+        changed = true;
+      }
+      const result = available.get(index);
+      if (
+        settings.enabled &&
+        eligible(project, cue, index) &&
+        result &&
+        kind === 'subtitle' &&
+        !cue.note
+      ) {
         cue.note = result.note;
         cue.noteAutomatic = true;
         cue.noteSource = cue.text;
         cue.noteTarget = settings.target;
         changed = true;
+      }
+      if (settings.enabled && eligible(project, cue, index) && result && kind !== 'subtitle') {
+        // Old cache entries remain useful without triggering a second API call.
+        const decoration =
+          result.decoration == null
+            ? result.note.length <= 32 && !result.note.includes('\n')
+              ? result.note
+              : ''
+            : result.decoration;
+        const pinyin = result.pinyin || '';
+        if (
+          cue.decoration !== decoration ||
+          cue.pinyin !== pinyin ||
+          cue.annotationSource !== cue.text ||
+          cue.annotationTarget !== settings.target
+        ) {
+          cue.decoration = decoration;
+          cue.pinyin = pinyin;
+          cue.annotationSource = cue.text;
+          cue.annotationTarget = settings.target;
+          changed = true;
+        }
       }
     });
     return changed;
@@ -143,7 +191,7 @@ window.LMSubtitles = (() => {
     if (working) return '副标题正在准备，请稍后再生成。';
     const wanted = project.cues.some((cue, i) => eligible(project, cue, i));
     if (!wanted) {
-      say('本次排版没有需要自动补译的副标题；手填内容已保留。');
+      say('本次排版无需自动附文；手填副标题已保留。');
       return '';
     }
     const key = songKey(project),
@@ -190,7 +238,7 @@ window.LMSubtitles = (() => {
       }
       LMTranslation.normalizeEndpoint(settings.endpoint);
       attempted.add(key);
-      report(`正在一次请求翻译整首 ${cues.length} 句歌词，已有副标题不会被覆盖…`);
+      report(`正在一次请求整首 ${cues.length} 句的译文、短译词与拼音，已有副标题不会被覆盖…`);
       results = await LMTranslation.translateBatch(cues, {
         target,
         endpoint: settings.endpoint,
@@ -205,7 +253,7 @@ window.LMSubtitles = (() => {
         warning = '译文已用于本次排版，但本地缓存写入失败；本次会话仍会复用，请检查磁盘空间。';
       }
       publish(key, results);
-      report(warning || '整首译文已保存到本地；仅为没有 | 且排版需要副标题的行补译。');
+      report(warning || '译文、短译词与拼音已保存；仅在合适的句子点缀，已有副标题不叠加附文。');
       return warning;
     } catch (error) {
       warning =
@@ -263,8 +311,8 @@ window.LMSubtitles = (() => {
     say(
       storageWarning ||
         (settings.enabled
-          ? '已开启。生成歌词时先查本地，缺少译文才整曲请求一次。'
-          : '已关闭。手填副标题保留，其余副标题为空；本地译文继续保留。')
+          ? '已开启。先查本地，缺少时整曲请求一次译文和拼音；附文按需取用。'
+          : '已关闭。手填副标题保留，自动附文为空；字组仍会收紧，本地译文继续保留。')
     );
   }
   function init(callbacks) {

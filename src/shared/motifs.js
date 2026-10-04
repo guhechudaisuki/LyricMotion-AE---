@@ -545,9 +545,10 @@ var LMMotifs = (function () {
       'leaf-pair': 0.61
     };
     var compact = /^(corner-stars|aurora-dots|twinkle-field|pearl-drift)$/.test(item.name);
+    var spanWidth = fh > fw * 1.6 ? Math.max(fw, Math.min(fh, glyphH * 1.6)) : fw;
     var length = compact
       ? clamp(glyphH * 0.62 * Math.sqrt(size), 30 * u, 68 * u)
-      : Math.min(fw * clamp(ratios[item.name] * Math.sqrt(size), 0.45, 0.9), glyphH * 1.85);
+      : Math.min(spanWidth * clamp(ratios[item.name] * Math.sqrt(size), 0.45, 0.9), glyphH * 1.85);
     var depth = Math.max(2 * u, Math.min(glyphH * 0.18, length * 0.26)),
       spark = Math.max(2 * u, Math.min(glyphH * 0.105, length * 0.18, 9 * u));
     var margin = Math.min(w, h) * 0.018,
@@ -579,12 +580,10 @@ var LMMotifs = (function () {
       ];
     var shifts = [0.24, -0.28, 0],
       scales = [1, 0.82, 0.65],
-      gap = Math.max(1.5 * u, Math.min(4 * u, glyphH * 0.035)),
       pad = Math.max(0.5, u * 0.5),
       siblings = scene.items || [],
       envelopes = {};
-    // Search close to the measured focus, then shorten or switch edge. The envelope
-    // includes all animated tips, so ornaments cannot drift onto neighbouring text.
+    // Low-opacity ornaments sit underneath the glyphs and cross the keyword edge.
     for (k = 0; k < scales.length && !choice; k++)
       for (i = 0; i < edges.length && !choice; i++)
         for (j = 0; j < shifts.length && !choice; j++) {
@@ -609,20 +608,18 @@ var LMMotifs = (function () {
             x,
             y;
           if (vertical) {
-            x = edge === 'left' ? b.left - gap - halfW : b.right + gap + halfW;
+            x = edge === 'left' ? b.left + halfW * 0.25 : b.right - halfW * 0.25;
             y = cy + shifts[j] * fh;
           } else {
             x = cx + shifts[j] * fw;
-            y = edge === 'top' ? b.top - gap - halfH : b.bottom + gap + halfH;
+            y = edge === 'top' ? b.top + halfH * 0.25 : b.bottom - halfH * 0.25;
           }
           if (halfW * 2 > maxX - minX || halfH * 2 > h - margin * 2) continue;
           x = clamp(x, minX + halfW, maxX - halfW);
           y = clamp(y, margin + halfH, h - margin - halfH);
           var box = { left: x - halfW, right: x + halfW, top: y - halfH, bottom: y + halfH },
-            blocked = overlaps(box, b, pad),
+            blocked = false,
             n;
-          for (n = 0; n < boxes.length && !blocked; n++)
-            if (validBounds(boxes[n]) && overlaps(box, boxes[n], pad)) blocked = true;
           for (n = 0; n < siblings.length && !blocked; n++) {
             if (siblings[n] === item) break;
             if (siblings[n].motifBounds && overlaps(box, siblings[n].motifBounds, pad * 2))
@@ -630,8 +627,7 @@ var LMMotifs = (function () {
           }
           if (!blocked) choice = { x: x - env.offsetX, y: y - env.offsetY, box: box, span: span };
         }
-    // A crowded keyword may have no free edge. Preserve topology without drawing
-    // an ornament over a small lyric or shifting it into the central picture.
+    // Additional ornaments still avoid one another and the central picture.
     if (!choice)
       choice = {
         x: cx,
@@ -656,7 +652,7 @@ var LMMotifs = (function () {
     item.motifBounds = choice.box;
     item.surroundSpan = choice.span;
     item.stroke = Math.max(1, 1.7 * u);
-    item.alpha = Math.max(item.alpha || 0, 0.9);
+    item.alpha = compact ? 0.36 : 0.28;
     item.maxW = choice.box ? choice.box.right - choice.box.left : length;
     item.maxH = choice.box ? choice.box.bottom - choice.box.top : 2 * (depth + spark);
     item.paths = specialPaths(scene, item, 0);

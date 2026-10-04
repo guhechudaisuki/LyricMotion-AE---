@@ -20,12 +20,13 @@ window.LMRender = (() => {
       item.maxW,
       item.maxH,
       item.tracking,
+      item.leading,
       item.align
     ].join('|');
     if (metrics.has(key)) return metrics.get(key);
     function atSize(size) {
       ctx.font = cssFont(item.font, size);
-      const leading = size * 1.3,
+      const leading = size * (item.leading || 1.3),
         gap = (item.tracking * size) / 1000;
       let x0 = Infinity,
         x1 = -Infinity,

@@ -212,6 +212,10 @@ var LMCore = (function () {
     return ids;
   }
   var styleChoices = {
+    annotations: [
+      { id: 'translation', name: '短译词 / 副标题' },
+      { id: 'pinyin', name: '关键词拼音' }
+    ],
     exits: [
       { id: 'dissolve', name: '柔和消散' },
       { id: 'drift', name: '向上轻收' },
@@ -817,13 +821,12 @@ var LMCore = (function () {
     }
     return findStyle(diverse(list, p, index));
   }
-  // Most small text is part of the original lyric, not a translated subtitle.
-  function styleNeedsNote(style) {
-    return style.kind === 'bilingual' || style.family === 'sidenote';
-  }
   // Like chosen(), callers pass the already normalized project; do not copy an entire song per cue.
+  function annotationKind(project, cue, index) {
+    return LMAnnotations.kind(project, cue || {}, index, chosen(project, cue || {}, index), random);
+  }
   function needsNote(project, cue, index) {
-    return styleNeedsNote(chosen(project, cue || {}, Math.max(0, Math.floor(num(index, 0)))));
+    return annotationKind(project, cue, Math.max(0, Math.floor(num(index, 0)))) !== 'none';
   }
   function random(seed, index, salt) {
     var n = Math.sin(seed * 13.17 + index * 47.71 + salt * 137.31) * 43758.5453;
@@ -1073,7 +1076,7 @@ var LMCore = (function () {
       for (var j = 0; j < allowed.length; j++) if (pool[i] === allowed[j]) out.push(pool[i]);
     return out.length ? out : pool;
   }
-  function footprint(st, p) {
+  function footprint(st, p, cue) {
     var presence =
       p.compositionScale === 'compact'
         ? 'compact'
@@ -1096,9 +1099,12 @@ var LMCore = (function () {
           : presence === 'compact'
             ? [0.2, 0.28]
             : [0.28, 0.4];
+    // A short phrase should remain a compact typographic group, not inflate to
+    // the same rectangle as a long verse merely because there is room available.
+    var density = String(cue.text || '').replace(/\s/g, '').length <= 6 ? 0.88 : 1;
     return {
-      width: dims[0] * p.scale,
-      height: dims[1] * p.scale,
+      width: dims[0] * p.scale * density,
+      height: dims[1] * p.scale * density,
       maxWidth: presence === 'side' ? 0.42 : 0.62,
       maxHeight: 0.7
     };
@@ -1242,6 +1248,7 @@ var LMCore = (function () {
         align: o.align || 'center',
         font: font,
         tracking: o.tracking || 0,
+        leading: o.note ? 1.2 : rows.length > 1 && rows[0].length <= 2 ? 1.05 : 1.15,
         color: o.accent ? p.accent : p.color,
         highlightColor: p.highlightColor,
         highlights: ranges,
@@ -1364,14 +1371,7 @@ var LMCore = (function () {
       });
       noteY = 62;
     }
-    if (cue.note && (cue.noteAutomatic !== true || cue.noteExplicit === true || styleNeedsNote(st)))
-      text(wrap(cue.note, 36).join('\n'), 0, noteY, st.kind === 'bilingual' ? 21 : 18, 470, 0.18, {
-        note: true,
-        alpha: 0.76,
-        font: /[A-Za-z]/.test(cue.note) ? 'Georgia' : p.font,
-        motion: 'fade',
-        tracking: 30
-      });
+    LMAnnotations.append(p, cue, index, st, fp.focus, text, noteY, wrap, random);
     if (p.ornaments !== 'none' && p.ornamentDensity && (!p.recipe || p.recipe.ornaments.length)) {
       var pool = ornamentSets[p.ornaments] || allOrnaments;
       var manual = String(p.ornaments).indexOf('motif:') === 0;
@@ -1405,7 +1405,8 @@ var LMCore = (function () {
           motifSize: p.ornamentSize,
           stroke: Math.max(0.9, (surround ? 2 : 1.5) * unit),
           color: p.accent,
-          alpha: 0.8,
+          alpha: 0.32,
+          behind: true,
           lag: Math.min(0.4, duration * 0.13) + i * 0.09,
           motion: 'mist',
           tilt: mark === 'petal' ? -25 : 0,
@@ -1441,7 +1442,7 @@ var LMCore = (function () {
       anchorX: cx,
       anchorY: cy,
       safeSide: safeSide,
-      footprint: footprint(st, p),
+      footprint: footprint(st, p, cue),
       exitMotion: exitMotion,
       exitOverride: recipeExits.length > 0,
       hold: 'still',
@@ -1473,6 +1474,7 @@ var LMCore = (function () {
     favorites: favorites,
     chosen: chosen,
     needsNote: needsNote,
+    annotationKind: annotationKind,
     scene: scene,
     motion: motion,
     makeOrnament: function (kind, size) {

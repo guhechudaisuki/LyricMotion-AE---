@@ -10,7 +10,7 @@
   <body>
     <header class="top">
       <div class="brand">
-        <b>映词</b><span>LyricMotion <small>MAD / AMV · 1.5.3</small></span>
+        <b>映词</b><span>LyricMotion <small>MAD / AMV · 1.5.4</small></span>
       </div>
       <span id="connection" class="muted">正在连接 AE…</span
       ><button id="reconnect" class="small">重新连接</button>
@@ -353,7 +353,7 @@
       <form method="dialog">
         <h2>添加风格 · 自选预设集合</h2>
         <p class="hint">
-          各类别可多选，随机只从选中范围挑选。小元素和本地素材未选就不添加；位置未选则左右随机；进退场未选用排版动作；字体配色未选用整曲设置。字体与配色从范围内为整曲选一套。
+          各类别可多选，随机只从选中范围挑选。小元素、本地素材和自动附文未选就不添加；位置未选则左右随机；进退场未选用排版动作；字体配色未选用整曲设置。字体与配色从范围内为整曲选一套。
         </p>
         <label
           >风格名称<input
@@ -372,6 +372,7 @@
             <option value="focusFonts">关键词字体</option>
             <option value="palettes">配色</option>
             <option value="highlights">关键词高亮</option>
+            <option value="annotations">自动附文 · 短译词 / 拼音</option>
             <option value="ornaments">内置动态字旁元素</option>
             <option value="local">本地 FFX / AEP / 素材</option></select
           ><input id="recipe-search" type="search" placeholder="搜索预设" />
@@ -431,9 +432,9 @@
     </dialog>
     <dialog id="translation-dialog">
       <form method="dialog">
-        <h2>设置 · 副标题翻译</h2>
+        <h2>设置 · 翻译与拼音</h2>
         <label class="inline"
-          ><input id="translation-enabled" type="checkbox" />自动翻译需要的副标题（默认关闭）</label
+          ><input id="translation-enabled" type="checkbox" />自动准备译文与拼音（默认关闭）</label
         >
         <label
           >目标语言<select id="translationTarget">
@@ -449,8 +450,8 @@
           </select></label
         >
         <p class="hint">
-          仅为没有 | 且所选排版需要副标题的行补译。歌词|手填内容 优先；歌词|
-          表示本句留空。未开启或请求失败时，空白副标题保持为空。
+          整曲一次请求译文、短译词与拼音。需要副标题的排版使用译文；其他句子仅择少量短词或关键词拼音点缀，不同时堆叠。
+          歌词|手填内容 优先；歌词| 表示本句留空。未开启或请求失败时不添加自动附文，排版仍会收紧。
         </p>
         <label
           >接口地址<input
@@ -492,8 +493,7 @@
         </p>
         <p id="translation-status" class="hint" aria-live="polite"></p>
         <div class="row">
-          <button id="translate-missing" type="button" class="small">
-            准备本曲副标题 / 手动重试</button
+          <button id="translate-missing" type="button" class="small">准备本曲附文 / 手动重试</button
           ><button id="translate-cancel" type="button" class="small" hidden>停止翻译</button>
         </div>
         <div class="dialog-actions">
@@ -510,6 +510,7 @@
     <script src="shared/choreography.js"></script>
     <script src="shared/song-profiles.js"></script>
     <script src="shared/presets.js"></script>
+    <script src="shared/annotations.js"></script>
     <script src="shared/core.js"></script>
     <script src="panel/render.js"></script>
     <script src="panel/bridge.js"></script>

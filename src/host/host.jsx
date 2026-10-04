@@ -6,7 +6,7 @@ var LMHost = (function () {
     lastComp = null,
     lastResult = null,
     lastProject = null,
-    version = '1.5.3',
+    version = '1.5.4',
     revision = 'panel-video-2';
   var renderChoice = null,
     renderSequence = 0,
@@ -132,7 +132,7 @@ var LMHost = (function () {
     }
     d.tracking = item.tracking;
     d.autoLeading = false;
-    d.leading = item.size * 1.3;
+    d.leading = item.size * (item.leading || 1.3);
     source.setValue(d);
     var rect = l.sourceRectAtTime(0, false),
       fit = Math.min(1, item.maxW / Math.max(1, rect.width), item.maxH / Math.max(1, rect.height));
@@ -297,7 +297,11 @@ var LMHost = (function () {
       job.assets[key] = source;
     }
     var scale = ((comp.width * 0.035) / Math.max(1, source.width)) * 100;
-    var attachment = { width: (source.width * scale) / 100, height: (source.height * scale) / 100 };
+    var attachment = {
+      width: (source.width * scale) / 100,
+      height: (source.height * scale) / 100,
+      behind: true
+    };
     if (!LMLayout.placeDecoration(scene, attachment)) {
       warn('字旁空间不足，已跳过素材：' + record.name);
       return;
@@ -305,6 +309,7 @@ var LMHost = (function () {
     scale *= attachment.fitScale;
     var l = comp.layers.add(source);
     l.name = '字旁素材 · ' + record.name;
+    l.moveToEnd();
     l.startTime = 0;
     l.inPoint = 0;
     l.outPoint = Math.min(scene.duration, source.duration > 0 ? source.duration : scene.duration);
@@ -313,7 +318,7 @@ var LMHost = (function () {
     xf(l, 'ADBE Position').setValue([attachment.x, attachment.y]);
     var end = l.outPoint,
       span = Math.min(0.3, end / 3);
-    xf(l, 'ADBE Opacity').setValuesAtTimes([0, span, end - span, end], [0, 55, 55, 0]);
+    xf(l, 'ADBE Opacity').setValuesAtTimes([0, span, end - span, end], [0, 32, 32, 0]);
     if (record.screen) l.blendingMode = BlendingMode.SCREEN;
   }
   function makeShape(part) {
@@ -853,7 +858,7 @@ var LMHost = (function () {
         p.fps
       );
       main.parentFolder = folder;
-      main.comment = 'LyricMotion 1.5.3 · 透明歌词叠加层 · 每句预合成内为可编辑文字和字旁形状';
+      main.comment = 'LyricMotion 1.5.4 · 透明歌词叠加层 · 每句预合成内为可编辑文字和字旁形状';
       job = {
         project: proj,
         p: p,

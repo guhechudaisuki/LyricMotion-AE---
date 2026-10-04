@@ -7,6 +7,7 @@ const sharedGlobals = Object.fromEntries(
     'LMMotion',
     'LMMotifs',
     'LMLayout',
+    'LMAnnotations',
     'LMChoreography',
     'LMSongProfiles',
     'LMPresets'

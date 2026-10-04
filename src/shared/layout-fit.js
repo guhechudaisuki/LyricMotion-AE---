@@ -5,7 +5,11 @@ var LMLayout = (function () {
     var r = ((item.tilt || 0) * Math.PI) / 180,
       c = Math.abs(Math.cos(r)),
       s = Math.abs(Math.sin(r));
-    return { w: item.boxW * c + item.boxH * s, h: item.boxW * s + item.boxH * c };
+    var scale = item.localScale || 1;
+    return {
+      w: (item.boxW * c + item.boxH * s) * scale,
+      h: (item.boxW * s + item.boxH * c) * scale
+    };
   }
   function estimate(item) {
     var rows = item.text.split('\n'),
@@ -22,9 +26,87 @@ var LMLayout = (function () {
         sum + (Math.max(0, rows[i].length - 1) * item.tracking * item.size) / 1000
       );
     }
-    var height = item.size * (1 + (rows.length - 1) * 1.3),
+    var height = item.size * (1 + (rows.length - 1) * (item.leading || 1.3)),
       fit = Math.min(1, item.maxW / Math.max(1, width), item.maxH / Math.max(1, height));
     return { width: width * fit, height: height * fit };
+  }
+  // Collapse only empty bands. Moving a whole band keeps reading order, stagger
+  // and non-overlap intact, unlike scaling every position toward the centre.
+  function closeBands(text, axis, unit) {
+    var spans = [],
+      i,
+      edge = -Infinity,
+      shift = 0,
+      previous = null;
+    for (i = 0; i < text.length; i++) {
+      var b = envelope(text[i]),
+        half = (axis === 'x' ? b.w : b.h) / 2;
+      spans.push({ item: text[i], start: text[i][axis] - half, end: text[i][axis] + half });
+    }
+    spans.sort(function (a, b) {
+      return a.start - b.start;
+    });
+    for (i = 0; i < spans.length; i++) {
+      var span = spans[i];
+      if (previous && span.start > edge) {
+        var glyph = Math.min(previous.size, span.item.size),
+          gap = Math.max(6 * unit, Math.min(12 * unit, glyph * 0.24));
+        shift += Math.max(0, span.start - edge - gap);
+      }
+      span.item[axis] -= shift;
+      if (span.end >= edge) {
+        edge = span.end;
+        previous = span.item;
+      }
+    }
+  }
+  function attachNotes(text, notes, unit) {
+    if (!text.length) return;
+    var host = text[0],
+      left = Infinity,
+      right = -Infinity,
+      bottom = -Infinity,
+      i,
+      j;
+    for (i = 0; i < text.length; i++) {
+      var item = text[i],
+        b = envelope(item);
+      if (item.size < host.size) host = item;
+      left = Math.min(left, item.x - b.w / 2);
+      right = Math.max(right, item.x + b.w / 2);
+      bottom = Math.max(bottom, item.y + b.h / 2);
+    }
+    var hb = envelope(host),
+      gap = Math.max(5 * unit, Math.min(9 * unit, host.size * 0.22));
+    for (i = 0; i < notes.length; i++) {
+      var note = notes[i];
+      note.localScale = Math.min(1, Math.max(hb.w, (right - left) * 0.62) / Math.max(1, note.boxW));
+      b = envelope(note);
+      var candidates = [
+        [host.x - hb.w / 2 + b.w / 2, host.y + hb.h / 2 + gap + b.h / 2],
+        [host.x - hb.w / 2 + b.w / 2, host.y - hb.h / 2 - gap - b.h / 2],
+        [left + b.w / 2, bottom + gap + b.h / 2]
+      ];
+      for (j = 0; j < candidates.length; j++) {
+        var p = candidates[j],
+          blocked = false;
+        for (var k = 0; k < text.length; k++) {
+          var other = envelope(text[k]);
+          if (
+            Math.abs(p[0] - text[k].x) < (b.w + other.w) / 2 + gap &&
+            Math.abs(p[1] - text[k].y) < (b.h + other.h) / 2 + gap - 0.01
+          )
+            blocked = true;
+        }
+        if (!blocked) {
+          note.x = p[0];
+          note.y = p[1];
+          break;
+        }
+      }
+      text.push(note);
+      bottom = Math.max(bottom, note.y + b.h / 2);
+    }
   }
   function placeLocal(scene, item, occupied, slot) {
     var b = scene.focusBounds || scene.bounds,
@@ -75,6 +157,13 @@ var LMLayout = (function () {
         [b.left - gap - halfW, cy],
         [b.right + gap + halfW, cy]
       ];
+      if (item.behind)
+        candidates = [
+          [b.right - halfW * 0.4, b.top + hh * 0.5],
+          [b.left + halfW * 0.4, b.bottom - hh * 0.5],
+          [b.left + halfW, b.top + halfH * 0.35],
+          [b.right - halfW, b.bottom - halfH * 0.35]
+        ].concat(candidates);
       for (j = 0; j < candidates.length; j++) {
         var p = candidates[(slot * 2 + j) % candidates.length],
           box = {
@@ -84,7 +173,7 @@ var LMLayout = (function () {
             bottom: p[1] + halfH
           },
           blocked = box.left < minX || box.right > maxX || box.top < 0 || box.bottom > scene.height;
-        for (var k = 0; !blocked && k < scene.textBounds.length; k++) {
+        for (var k = 0; !item.behind && !blocked && k < scene.textBounds.length; k++) {
           var tb = scene.textBounds[k];
           if (
             box.left < tb.right + 2 * scene.unit &&
@@ -115,6 +204,7 @@ var LMLayout = (function () {
   }
   function resolve(scene, measure) {
     var text = [],
+      notes = [],
       i,
       j,
       k,
@@ -131,6 +221,7 @@ var LMLayout = (function () {
     for (i = 0; i < scene.items.length; i++) {
       it = scene.items[i];
       it.fitScale = 1;
+      it.localScale = 1;
       it.layoutHidden = false;
       it.motifBounds = null;
       if (it.designX == null) {
@@ -145,7 +236,8 @@ var LMLayout = (function () {
       it.boxH = Math.max(1, m.height);
       if (it.align === 'left') it.x += it.boxW / 2;
       else if (it.align === 'right') it.x -= it.boxW / 2;
-      text.push(it);
+      if (it.note) notes.push(it);
+      else text.push(it);
     }
     // Keep previously placed text still. Give each later word or glyph its own space.
     for (i = 0; i < text.length; i++) {
@@ -207,6 +299,9 @@ var LMLayout = (function () {
         else it.y = freeY;
       }
     }
+    closeBands(text, 'x', scene.unit);
+    closeBands(text, 'y', scene.unit);
+    attachNotes(text, notes, scene.unit);
     var x0 = Infinity,
       x1 = -Infinity,
       y0 = Infinity,
@@ -251,7 +346,7 @@ var LMLayout = (function () {
       it = text[i];
       it.x = tx + (it.x - cx) * fit;
       it.y = ty + (it.y - cy) * fit;
-      it.fitScale = fit;
+      it.fitScale = fit * it.localScale;
     }
     scene.bounds = { left: tx - hw, right: tx + hw, top: ty - hh, bottom: ty + hh };
     scene.layoutScale = fit;
@@ -279,7 +374,7 @@ var LMLayout = (function () {
       if (it.focus) {
         scene.focusGlyphHeight = Math.max(
           scene.focusGlyphHeight,
-          (it.boxH * fit) / (1 + (it.text.split('\n').length - 1) * 1.3)
+          (it.boxH * fit) / (1 + (it.text.split('\n').length - 1) * (it.leading || 1.3))
         );
         if (!scene.focusBounds)
           scene.focusBounds = { left: tb.left, right: tb.right, top: tb.top, bottom: tb.bottom };

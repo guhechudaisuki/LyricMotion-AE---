@@ -8,7 +8,7 @@ window.LMBridge = (() => {
     os = req ? req('os') : null;
   let ready = false,
     connecting = null;
-  const version = '1.5.3';
+  const version = '1.5.4';
   const revision = 'panel-video-2';
   const extensionRoot =
     cep && path

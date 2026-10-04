@@ -13,6 +13,7 @@ export const sharedModules = [
   'choreography',
   'song-profiles',
   'presets',
+  'annotations',
   'core'
 ].map((name) => `src/shared/${name}.js`);
 export const hostModules = [...sharedModules, 'src/host/host.jsx'];

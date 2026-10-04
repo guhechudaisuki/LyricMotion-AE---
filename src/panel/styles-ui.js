@@ -8,7 +8,15 @@ window.LMStylesUI = (() => {
     selected = new Map(),
     limit = 60,
     editing = null;
-  const extraSources = ['exits', 'positions', 'fonts', 'focusFonts', 'palettes', 'highlights'];
+  const extraSources = [
+    'exits',
+    'positions',
+    'fonts',
+    'focusFonts',
+    'palettes',
+    'highlights',
+    'annotations'
+  ];
   const sourceLabels = {
     layouts: '排版',
     motions: '文字动作',
@@ -19,7 +27,8 @@ window.LMStylesUI = (() => {
     fonts: '正文字体',
     focusFonts: '关键词字体',
     palettes: '配色',
-    highlights: '关键词高亮'
+    highlights: '关键词高亮',
+    annotations: '自动附文'
   };
   const emptyAdvice = {
     ornaments: '未选则不添加',
@@ -29,7 +38,8 @@ window.LMStylesUI = (() => {
     fonts: '未选则使用整曲设置',
     focusFonts: '未选则使用整曲设置',
     palettes: '未选则使用整曲设置',
-    highlights: '未选则使用整曲设置'
+    highlights: '未选则使用整曲设置',
+    annotations: '未选则不添加自动附文'
   };
   const choiceAdvice = {
     layouts: '每句从所选排版中挑选',
@@ -41,7 +51,8 @@ window.LMStylesUI = (() => {
     fonts: '从范围内为整曲选一种正文字体',
     focusFonts: '从范围内为整曲选一种关键词字体',
     palettes: '从范围内为整曲选一套颜色',
-    highlights: '每句从所选高亮方式中挑选'
+    highlights: '每句从所选高亮方式中挑选',
+    annotations: '开启自动翻译后，仅在合适的句子选用一种；已有副标题不叠加'
   };
   function choiceName(source, id) {
     const list =
@@ -351,7 +362,9 @@ window.LMStylesUI = (() => {
         })
       );
       extraSources.forEach((source) =>
-        (style.recipe[source] || []).forEach((id) =>
+        (
+          style.recipe[source] || (source === 'annotations' ? ['translation', 'pinyin'] : [])
+        ).forEach((id) =>
           selected.set(source + ':' + id, {
             id: source + ':' + id,
             key: id,
@@ -419,7 +432,8 @@ window.LMStylesUI = (() => {
           fonts: [],
           focusFonts: [],
           palettes: [],
-          highlights: []
+          highlights: [],
+          annotations: []
         };
         for (const r of selected.values()) {
           if (r.source === 'local') {

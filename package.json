@@ -1,6 +1,6 @@
 {
   "name": "lyricmotion-ae",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "private": true,
   "description": "映词 LyricMotion：面向 MAD / AMV 的透明动态歌词排版",
   "scripts": {
