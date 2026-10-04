@@ -1,0 +1,35 @@
+# Dependencies and tool caches
+node_modules/
+.cache/
+.npm/
+*.tsbuildinfo
+
+# Build products, installers, runtime logs and local reports
+/dist/
+/artifacts/
+/coverage/
+/playwright-report/
+/test-results/
+*.log
+
+# Personal preset indexes, inventories, reference footage and machine configuration
+/.local/
+/reference/
+/resources/**
+!/resources/manifest.json
+/.env
+/.env.*
+!/.env.example
+
+# Credentials, signing keys and editor / OS state
+*.pem
+*.key
+*.p12
+*.pfx
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+/.idea/
+/.vscode/

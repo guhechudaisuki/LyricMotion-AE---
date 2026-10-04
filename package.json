@@ -1,0 +1,38 @@
+{
+  "name": "lyricmotion-ae",
+  "version": "1.5.0",
+  "private": true,
+  "description": "映词 LyricMotion：面向 MAD / AMV 的透明动态歌词排版",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "bundle": "node scripts/bundle-curated.mjs",
+    "test": "node --test tests/unit/*.test.mjs",
+    "test:panel": "node tests/integration/prerender-panel.mjs && node tests/integration/translation-cache.mjs",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "selfcheck": "npm run test",
+    "format": "prettier --write .",
+    "check": "npm run lint && npm run format:check && npm test && node scripts/check-project.mjs && npm run build",
+    "package": "node scripts/package.mjs",
+    "resources:fetch": "node scripts/fetch-resources.mjs",
+    "resources:verify": "node scripts/verify-resources.mjs",
+    "resources:pack": "node scripts/pack-resources.mjs",
+    "test:installer": "node tests/integration/installer-resources.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "acorn": "8.18.0",
+    "eslint": "10.12.0",
+    "globals": "17.13.0",
+    "playwright": "1.63.0",
+    "prettier": "3.9.9"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guhechudaisuki/LyricMotion-AE---.git"
+  },
+  "license": "UNLICENSED"
+}

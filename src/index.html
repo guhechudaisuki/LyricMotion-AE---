@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="lyricmotion-resources" content="../resources/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>映词 LyricMotion</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <b>映词</b><span>LyricMotion <small>MAD / AMV · 1.5.0</small></span>
+      </div>
+      <span id="connection" class="muted">正在连接 AE…</span
+      ><button id="reconnect" class="small">重新连接</button>
+      <div class="top-actions">
+        <button id="translation-config">设置</button
+        ><button id="undo" title="撤销最近一次编辑">撤销</button><button id="save">保存方案</button
+        ><label class="button">打开方案<input id="open" type="file" accept=".json" hidden /></label>
+      </div>
+    </header>
+    <main class="studio">
+      <aside class="library">
+        <div class="section-head">
+          <h2>歌曲动效风格</h2>
+          <button id="add-style" class="small">＋ 添加风格</button>
+        </div>
+        <label class="sr-only" for="songProfile">歌曲动效风格</label
+        ><select id="songProfile">
+          <option value="free">完全随机 · 无固定风格</option>
+        </select>
+        <p id="profile-note" class="hint">
+          完全随机使用全部内置预设。选定风格后，随机编排会保持该风格。
+        </p>
+        <div class="random-actions">
+          <button id="reroll">随机编排</button
+          ><button id="randomize" class="primary">一键随机</button>
+        </div>
+        <nav class="tabs" aria-label="预设库">
+          <button data-tab="layouts" aria-selected="true">排版预设</button
+          ><button data-tab="ornaments">字旁元素</button><button data-tab="local">本地预设</button
+          ><button data-tab="themes">我的风格</button>
+        </nav>
+        <section id="tab-themes" class="tab-page" hidden>
+          <h3>我的风格集合</h3>
+          <p class="hint">
+            添加风格时，从现有预设中任意多选。保存后会出现在上方风格下拉框。这里可编辑或删除自建风格；内置风格保留。
+          </p>
+          <div id="user-styles" class="theme-grid"></div>
+          <p id="user-empty" class="hint">点上方“添加风格”，选择你喜欢的预设。</p>
+        </section>
+        <section id="tab-layouts" class="tab-page">
+          <p class="hint">
+            悬停预设播放完整进退场，点击应用到当前一句。点 ☆
+            收藏；“添加风格”可将任意预设组成自己的集合。
+          </p>
+          <input
+            id="layout-search"
+            type="search"
+            placeholder="搜索：遮罩、翻页、波浪、字距、逐字…"
+            aria-label="搜索排版预设"
+          /><select id="layout-group" aria-label="排版手法筛选">
+            <option value="all">全部排版手法</option></select
+          ><label class="inline"><input id="layout-favorites" type="checkbox" />只看收藏</label>
+          <p id="layout-count" class="hint"></p>
+          <div id="layouts" class="layout-grid"></div>
+        </section>
+        <section id="tab-ornaments" class="tab-page" hidden>
+          <h3>字旁的小细节</h3>
+          <label
+            >元素组合<select id="ornaments">
+              <option value="auto">随机小元素</option>
+              <option value="none">不添加</option>
+              <option value="stars">星点 / 小十字 / 星座</option>
+              <option value="lines">短横线 / 角标</option>
+              <option value="orbit">细环 / 圆弧 / 星轨</option>
+              <option value="petals">花瓣 / 圆点</option>
+              <option value="brackets">括号 / 转角</option>
+              <option value="diamonds">菱形 / 微光</option>
+              <option value="ticks">刻度 / 斜线</option>
+            </select></label
+          ><label
+            >元素大小 <output id="ornament-size-value"></output
+            ><input id="ornamentSize" type="range" min="0.3" max="2" step="0.05" /></label
+          ><label
+            >每句最多 <output id="ornament-count-value"></output
+            ><input id="ornamentDensity" type="range" min="0" max="4" step="1"
+          /></label>
+          <div id="motif-gallery" class="layout-grid"></div>
+          <p class="hint">
+            48
+            种元素：独立星光闪烁、字旁曲线、沿线小物、描绘和浮动。悬停播放，点击为当前方案选择这个元素；生成后保留路径和关键帧。
+          </p>
+        </section>
+        <section id="tab-local" class="tab-page" hidden>
+          <div class="section-head">
+            <h3>本机预设与素材</h3>
+            <button id="scan" class="small">扫描文件夹</button>
+          </div>
+          <p class="hint">
+            精选预设已随安装器提供。FFX 可叠加到所选图层；AEP、透明视频与图片可作为字旁素材。
+          </p>
+          <input
+            id="local-search"
+            type="search"
+            placeholder="搜索：细线、Circle、Opacity、星点…"
+            aria-label="搜索本地素材"
+          /><select id="local-kind" aria-label="素材类型">
+            <option value="all">全部类型</option>
+            <option value="ffx">FFX 动画预设</option>
+            <option value="aep">AEP 动态元素</option>
+            <option value="media">视频 / 图片</option>
+          </select>
+          <p id="local-count" class="hint"></p>
+          <div id="local-list"></div>
+          <button id="local-more" hidden>显示更多</button>
+          <p class="hint">也可以扫描自己的素材文件夹。预览图只用于挑选。</p>
+        </section>
+      </aside>
+      <section class="workspace">
+        <div class="preview-bar">
+          <h2 id="preview-title">歌词的留白，也是画面的一部分</h2>
+          <label class="inline"
+            >预览底图<select id="background">
+              <option value="mist">雾蓝</option>
+              <option value="alpha">透明格</option>
+              <option value="dark">暗色</option>
+              <option value="light">浅色</option>
+            </select></label
+          ><label class="button small"
+            >载入画面<input id="visual-file" type="file" accept="video/*,image/*" hidden /></label
+          ><button id="clear-visual" class="small" hidden>移除画面</button>
+        </div>
+        <div class="preview-wrap">
+          <canvas id="preview" width="1280" height="720" aria-label="动态歌词预览"></canvas
+          ><span class="preview-label">透明歌词叠加 · 背景仅供预览</span>
+        </div>
+        <div class="transport">
+          <button id="play" class="small">播放</button
+          ><input
+            id="seek"
+            type="range"
+            min="0"
+            max="5"
+            step="0.01"
+            value="0"
+            aria-label="预览时间"
+          /><span id="clock" class="mono">00:00.000</span
+          ><label class="inline"><input id="guides" type="checkbox" />安全区</label>
+        </div>
+        <div class="editor-grid">
+          <section class="lyrics-panel">
+            <div class="section-head">
+              <h2>歌词与时间</h2>
+              <div class="row">
+                <label class="button small"
+                  >导入 SRT / LRC<input
+                    id="subtitle"
+                    type="file"
+                    accept=".srt,.lrc,.txt"
+                    hidden /></label
+                ><button id="paste" class="small">粘贴</button
+                ><button id="export-srt" class="small">存为 SRT</button>
+              </div>
+            </div>
+            <div class="row music-row">
+              <label class="button small"
+                >载入音乐<input id="audio-file" type="file" accept="audio/*" hidden /></label
+              ><span id="audio-name" class="muted">未载入音乐</span
+              ><button id="clear-audio" class="small" hidden>移除</button>
+            </div>
+            <div id="cue-list" role="list" aria-label="歌词列表"></div>
+            <div class="row">
+              <button id="add-cue" class="small">＋ 添加一句</button
+              ><button id="delete-cue" class="small">删除选中句</button
+              ><span id="cue-count" class="hint"></span>
+            </div>
+          </section>
+          <section class="inspector">
+            <h2>当前一句</h2>
+            <div class="two">
+              <label>开始<input id="cue-start" class="mono" autocomplete="off" /></label
+              ><label>结束<input id="cue-end" class="mono" autocomplete="off" /></label>
+            </div>
+            <label>主歌词<textarea id="cue-text" rows="2" placeholder="主歌词"></textarea></label
+            ><label
+              >注释 / 副标题<input
+                id="cue-note"
+                placeholder="可填翻译、读音或小字；不填则不显示" /></label
+            ><label
+              >放大的关键词<input
+                id="cue-focus"
+                placeholder="留空自动选择，或填写原句中的字词" /></label
+            ><label
+              >高亮关键词<input
+                id="cue-highlight"
+                placeholder="可填多个，用逗号分隔；留空沿用放大词" /></label
+            ><label
+              >本句高亮<select id="cue-highlight-mode">
+                <option value="auto">自动突出</option>
+                <option value="color">始终高亮</option>
+                <option value="none">不高亮</option>
+              </select></label
+            ><label
+              >本句动效<select id="cue-motion">
+                <option value="">跟随整体设置</option>
+              </select></label
+            ><label
+              >本句排版<select id="cue-style">
+                <option value="">跟随整体设置</option>
+              </select></label
+            ><label
+              >位置<select id="cue-position">
+                <option value="auto">自动 · 左右留白</option>
+                <option value="0.2,0.3">左上</option>
+                <option value="0.2,0.52">左侧</option>
+                <option value="0.2,0.75">左下</option>
+                <option value="0.8,0.3">右上</option>
+                <option value="0.8,0.52">右侧</option>
+                <option value="0.8,0.75">右下</option>
+                <option value="0.5,0.5">居中</option>
+                <option value="0.5,0.8">底部居中</option>
+              </select></label
+            >
+          </section>
+        </div>
+        <section class="settings">
+          <div class="section-head">
+            <h2>整曲设置</h2>
+            <button id="active-size" class="small">读取当前 AE 合成尺寸</button>
+          </div>
+          <div class="settings-grid">
+            <label>方案名称<input id="title" /></label
+            ><label
+              >字体<input id="font" list="fonts" /><datalist id="fonts">
+                <option value="SimSun">宋体</option>
+                <option value="STSong">华文宋体</option>
+                <option value="FangSong">仿宋</option>
+                <option value="KaiTi">楷体</option>
+                <option value="MicrosoftYaHei">微软雅黑</option>
+              </datalist></label
+            ><label
+              >关键词字体<select id="focusFont">
+                <option value="">随排版搭配</option>
+                <option value="inherit">与主歌词相同</option>
+                <option value="STXingkai">华文行楷</option>
+                <option value="KaiTi">楷体</option>
+                <option value="SimSun">宋体</option>
+                <option value="STSong">华文宋体</option>
+              </select></label
+            ><label
+              >画面占比<select id="compositionScale">
+                <option value="auto">随排版自然变化</option>
+                <option value="display">大字展开</option>
+                <option value="compact">小字留白</option>
+              </select></label
+            ><label>文字颜色<input id="color" type="color" /></label
+            ><label>高亮颜色<input id="highlightColor" type="color" /></label
+            ><label>元素颜色<input id="accent" type="color" /></label
+            ><label
+              >关键词放大 <output id="emphasisScale-value"></output
+              ><input id="emphasisScale" type="range" min="0.65" max="1.5" step="0.05" /></label
+            ><label
+              >默认高亮<select id="highlightMode">
+                <option value="auto">自动选择少量关键词</option>
+                <option value="color">每句都高亮关键词</option>
+                <option value="none">只做大小对比</option>
+              </select></label
+            ><label
+              >文字大小 <output id="scale-value"></output
+              ><input id="scale" type="range" min="0.5" max="2" step="0.05" /></label
+            ><label
+              >文字动效<select id="motionMode">
+                <option value="auto">随歌曲风格与排版变化</option>
+              </select></label
+            ><label
+              >动效强度 <output id="intensity-value"></output
+              ><input id="intensity" type="range" min="0" max="1" step="0.05" /></label
+            ><label
+              >不透明度 <output id="opacity-value"></output
+              ><input id="opacity" type="range" min="10" max="100" step="1"
+            /></label>
+            <div class="three">
+              <label>宽<input id="width" type="number" min="320" max="7680" /></label
+              ><label>高<input id="height" type="number" min="320" max="4320" /></label
+              ><label>帧率<input id="fps" type="number" min="12" max="60" step="0.001" /></label>
+            </div>
+          </div>
+          <div class="timing-settings">
+            <h3>文字进退场时间</h3>
+            <div class="two">
+              <label
+                >进场占比 <output id="enterPercent-value"></output
+                ><input
+                  id="enterPercent"
+                  type="range"
+                  min="25"
+                  max="75"
+                  step="1"
+                  aria-describedby="timing-help" /></label
+              ><label
+                >退场占比 <output id="exitPercent-value"></output
+                ><input
+                  id="exitPercent"
+                  type="range"
+                  min="25"
+                  max="75"
+                  step="1"
+                  aria-describedby="timing-help"
+              /></label>
+            </div>
+            <div class="timing-track" aria-hidden="true">
+              <span id="timing-enter">进场</span><span id="timing-hold">静止</span
+              ><span id="timing-exit">退场</span>
+            </div>
+            <p id="timing-note" class="hint" aria-live="polite"></p>
+            <p id="timing-help" class="hint">
+              各占本句时长的 25%～75%，合计最多
+              100%。逐字错拍包含在动画时间内；到位后文字静止。设置随方案保存。
+            </p>
+          </div>
+        </section>
+        <footer class="output">
+          <label class="inline"><input id="overlay" type="checkbox" />同时叠加到当前合成</label>
+          <div class="row">
+            <button id="generate" class="primary" disabled>生成 AE 动态歌词</button
+            ><button id="resume" class="primary" hidden>继续生成</button
+            ><button id="cancel" hidden>停止生成</button
+            ><button id="prerender" disabled>预渲染</button>
+          </div>
+          <progress id="progress" value="0" max="1" hidden></progress>
+          <p id="status" role="status" aria-live="polite">
+            每句生成独立预合成，内部保留可编辑文字与字旁形状。
+          </p>
+        </footer>
+      </section>
+    </main>
+    <dialog id="paste-dialog">
+      <form method="dialog">
+        <h2>粘贴歌词</h2>
+        <p class="hint">
+          支持 SRT、LRC 时间戳。普通歌词按每句 4 秒排布，可再调整时间。使用 歌词|注释 或 *关键词*。
+        </p>
+        <textarea id="paste-text" rows="13" spellcheck="false"></textarea>
+        <div class="dialog-actions">
+          <button value="cancel">取消</button
+          ><button id="paste-confirm" value="default" class="primary">导入歌词</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="style-dialog">
+      <form method="dialog">
+        <h2>添加风格 · 自选预设集合</h2>
+        <p class="hint">
+          各类别可多选，随机只从选中范围挑选。小元素和本地素材未选就不添加；位置未选则左右随机；进退场未选用排版动作；字体配色未选用整曲设置。字体与配色从范围内为整曲选一套。
+        </p>
+        <label
+          >风格名称<input
+            id="style-name"
+            maxlength="40"
+            required
+            placeholder="例如：我喜欢的细宋体"
+        /></label>
+        <div class="two">
+          <select id="recipe-source" aria-label="预设来源">
+            <option value="layouts">内置排版</option>
+            <option value="motions">文字动作（成对入退）</option>
+            <option value="exits">退出手法</option>
+            <option value="positions">左右位置</option>
+            <option value="fonts">正文字体</option>
+            <option value="focusFonts">关键词字体</option>
+            <option value="palettes">配色</option>
+            <option value="highlights">关键词高亮</option>
+            <option value="ornaments">内置动态字旁元素</option>
+            <option value="local">本地 FFX / AEP / 素材</option></select
+          ><input id="recipe-search" type="search" placeholder="搜索预设" />
+        </div>
+        <p id="recipe-source-count" class="hint"></p>
+        <div class="section-head">
+          <span id="recipe-count" class="hint">已选 0 项</span>
+          <div class="row">
+            <button id="recipe-all" type="button" class="small">全选搜索结果</button
+            ><button id="recipe-clear" type="button" class="small">清空选择</button>
+          </div>
+        </div>
+        <div id="recipe-list"></div>
+        <button id="recipe-more" type="button" class="small" hidden>显示更多</button>
+        <div id="recipe-selected" class="hint"></div>
+        <div class="dialog-actions">
+          <button value="cancel" formnovalidate>取消</button
+          ><button id="style-confirm" value="default" class="primary">保存预设集合</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="render-dialog">
+      <form method="dialog">
+        <h2>预渲染到 AE 项目</h2>
+        <p id="render-name"></p>
+        <label>AE 输出模块模板<select id="render-template"></select></label>
+        <p class="hint">
+          可选 AE 视频模板，或沿用 AE 新建队列项的默认输出设置。用于透明叠加时请选择带 Alpha 的
+          QuickTime / AVI 模板；H.264
+          不保留透明通道。完成后自动导入项目并创建视频合成，渲染过程中可在 AE 渲染队列停止。
+        </p>
+        <div class="dialog-actions">
+          <button value="cancel">取消</button
+          ><button id="render-confirm" value="default" class="primary">开始预渲染</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="asset-dialog">
+      <form method="dialog">
+        <h2>导入的动态元素</h2>
+        <label>选择合成<select id="asset-comp"></select></label
+        ><label class="inline"><input id="asset-screen" type="checkbox" />黑底素材使用滤色</label>
+        <p class="hint">
+          先在 AE 中打开目标合成。若选中一个文字层，素材将作为它的子图层放在文字旁边。
+        </p>
+        <div class="dialog-actions">
+          <button value="cancel">稍后使用</button
+          ><button id="asset-add" value="default" class="primary">加入当前合成</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="translation-dialog">
+      <form method="dialog">
+        <h2>设置 · 副标题翻译</h2>
+        <label class="inline"
+          ><input id="translation-enabled" type="checkbox" />自动翻译需要的副标题（默认关闭）</label
+        >
+        <label
+          >目标语言<select id="translationTarget">
+            <option value="en">英语</option>
+            <option value="ja">日语</option>
+            <option value="ko">韩语</option>
+            <option value="fr">法语</option>
+            <option value="de">德语</option>
+            <option value="es">西班牙语</option>
+            <option value="ru">俄语</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁体中文</option>
+          </select></label
+        >
+        <p class="hint">
+          仅为没有 | 且所选排版需要副标题的行补译。歌词|手填内容 优先；歌词|
+          表示本句留空。未开启或请求失败时，空白副标题保持为空。
+        </p>
+        <label
+          >接口地址<input
+            id="translation-endpoint"
+            type="url"
+            placeholder="https://你的服务/v1/chat/completions"
+            autocomplete="off"
+        /></label>
+        <label
+          >模型名<input
+            id="translation-model"
+            placeholder="填写服务提供的模型名称"
+            autocomplete="off"
+        /></label>
+        <label
+          >API Key<input
+            id="translation-key"
+            type="password"
+            placeholder="仅在本次面板会话内使用"
+            autocomplete="off"
+        /></label>
+        <p class="hint">
+          生成时先读本地缓存。缺少对应语言时，整首主歌词只发一次请求；校验完整译文后按行取用。接口和模型保存在本机；Key
+          仅本次会话使用，不写入方案或缓存。
+        </p>
+        <label
+          >本地译文缓存上限（首）<input
+            id="translation-cache-limit"
+            type="number"
+            min="1"
+            max="10000"
+            step="1"
+            value="500"
+        /></label>
+        <p id="translation-cache-status" class="hint"></p>
+        <p class="hint">
+          默认 500
+          首。改时间、改标题或换排版均复用同一份歌词；多种译文按一首计数。调低上限并应用时立即淘汰最久未使用的歌曲。
+        </p>
+        <p id="translation-status" class="hint" aria-live="polite"></p>
+        <div class="row">
+          <button id="translate-missing" type="button" class="small">
+            准备本曲副标题 / 手动重试</button
+          ><button id="translate-cancel" type="button" class="small" hidden>停止翻译</button>
+        </div>
+        <div class="dialog-actions">
+          <button value="cancel" formnovalidate>关闭</button
+          ><button id="translation-config-save" value="default" class="primary">应用设置</button>
+        </div>
+      </form>
+    </dialog>
+    <div id="toast" role="status" hidden></div>
+    <script src="panel/startup.js"></script>
+    <script src="shared/motion.js"></script>
+    <script src="shared/motifs.js"></script>
+    <script src="shared/layout-fit.js"></script>
+    <script src="shared/choreography.js"></script>
+    <script src="shared/song-profiles.js"></script>
+    <script src="shared/presets.js"></script>
+    <script src="shared/core.js"></script>
+    <script src="panel/render.js"></script>
+    <script src="panel/bridge.js"></script>
+    <script src="panel/local-library.js"></script>
+    <script src="panel/styles-ui.js"></script>
+    <script src="data/demo.js"></script>
+    <script src="panel/translation.js"></script>
+    <script src="panel/translation-cache.js"></script>
+    <script src="panel/subtitles.js"></script>
+    <script src="panel/app.js"></script>
+  </body>
+</html>

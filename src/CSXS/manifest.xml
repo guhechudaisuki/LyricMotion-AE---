@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.lyricmotion.ae" ExtensionBundleVersion="1.5.0" ExtensionBundleName="映词 LyricMotion">
+  <ExtensionList><Extension Id="com.lyricmotion.ae.panel" Version="1.5.0"/></ExtensionList>
+  <ExecutionEnvironment>
+    <HostList><Host Name="AEFT" Version="[22.0,99.9]"/></HostList>
+    <LocaleList><Locale Code="All"/></LocaleList>
+    <RequiredRuntimeList><RequiredRuntime Name="CSXS" Version="11.0"/></RequiredRuntimeList>
+  </ExecutionEnvironment>
+  <DispatchInfoList><Extension Id="com.lyricmotion.ae.panel"><DispatchInfo>
+    <Resources><MainPath>./index.html</MainPath><CEFCommandLine><Parameter>--enable-nodejs</Parameter></CEFCommandLine></Resources>
+    <Lifecycle><AutoVisible>true</AutoVisible></Lifecycle>
+    <UI><Type>Panel</Type><Menu>映词 LyricMotion · 动态歌词</Menu><Geometry>
+      <Size><Width>1180</Width><Height>900</Height></Size>
+      <MinSize><Width>560</Width><Height>480</Height></MinSize>
+      <MaxSize><Width>6000</Width><Height>4000</Height></MaxSize>
+    </Geometry></UI>
+  </DispatchInfo></Extension></DispatchInfoList>
+</ExtensionManifest>

@@ -1,0 +1,12 @@
+* text=auto eol=lf
+*.nsi text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.mp4 binary
+*.exe binary
+*.zip binary
+*.ffx binary
+*.aep binary
+*.gif binary
+*.gz binary

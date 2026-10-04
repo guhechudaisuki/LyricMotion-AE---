@@ -1,0 +1,7 @@
+{
+  "singleQuote": true,
+  "trailingComma": "none",
+  "printWidth": 100,
+  "endOfLine": "lf",
+  "overrides": [{ "files": "src/host/*.jsx", "options": { "parser": "babel" } }]
+}
